@@ -136,7 +136,7 @@ void merge_sort(node *block, int n){
   merge_sort(left,mid);  // sort left subarray
   merge_sort(right,n-mid);  // sort right subarray
   merge(block,left,mid,right,n-mid);
-  free(left)
+  free(left);
   free(right);
 }
 
