@@ -35,7 +35,7 @@ lsm* fill_in_lsm(lsm* tree){
 
 node* get_node(keyType key, lsm* tree){
   /* search the buffer for this item */
-  printf('searching level 1\n');
+  printf("searching level 1\n");
   for (int i = 0; i < tree->block_size; i++){
     if (tree->block[i].key == key){
       return &tree->block[i];
@@ -44,14 +44,15 @@ node* get_node(keyType key, lsm* tree){
 
   /* search through the file on disk for this item */
   printf("opening file\n");
-  tree->disk_fp  = fopen('disk_storage.txt', 'rb+');
+  tree->disk_fp  = fopen("disk_storage.txt", "rb+");
   /* QUESTION: How does the void pointer in fread work? */
   node *file_data;
   size_t noe;
-  fread(noe, sizeof(size_t), 1, tree->disk_fp);
+  fread(&noe, sizeof(size_t), 1, tree->disk_fp);
+  file_data = malloc(sizeof(node)*noe);
   fread(file_data, sizeof(node), noe, tree->disk_fp);
 
-  printf('searching level 2\n');
+  printf("searching level 2\n");
   for(int i = 0; i < sizeof(file_data); i++){
     if (file_data[i].key == key){
       return &file_data[i];
@@ -70,6 +71,7 @@ int put(keyType key, valType val, lsm* tree){
     n.key = key;
     n.val = val;
     tree->block[tree->next_empty] = n;
+    tree->next_empty += 1;
   }
   return 0;
 }
@@ -85,24 +87,79 @@ int update(keyType key, valType val, lsm* tree){
   return 1;
 }
 
-int merge_sort(node *block){
-  /* Given an unsorted char array containing nores , this returns
-     a char array sorted by key using merge sort */
-  assert(block != NULL);
-  
-  /**/
-  return 0; 
+
+void merge(node *whole, node *left,int left_size,node *right,int right_size){
+  int l, r, i;
+  l = 0; r = 0; i = 0;
+
+  while(l < left_size && r < right_size) {
+    if(left[l].key  < right[r].key){
+      whole[i++] = left[l++];
+    } else{
+      whole[i++] = right[r++];
+    }
+  }
+  while(l < left_size){
+    whole[i++] = left[l++];
+  }
+  while(r < right_size){
+    whole[i++] = right[r++];
+  }
 }
 
-int  merge(){
+
+void merge_sort(node *block, int n){
+  /* Given an unsorted char array containing nores , this returns
+     a char array sorted by key using merge sort */
+  /* Assumption: block will only be sorted when full */
+  assert(block != NULL);
+  if(n < 2){
+    return;
+  }
+  int mid, i;
+  mid = n/2;
+  node *left;
+  node *right;
+
+  /* create and populate left and right subarrays*/
+  left = (node*)malloc(mid*sizeof(node));
+  right = (node*)malloc((n-mid)*sizeof(node));
+  
+  for(i = 0; i < mid; i++){
+    left[i] = block[i];
+  }
+  for(i = mid;i<n;i++){
+    right[i-mid] = block[i];
+  }
+
+  /* sort and merge the two arrays */
+  merge_sort(left,mid);  // sort left subarray
+  merge_sort(right,n-mid);  // sort right subarray
+  merge(block,left,mid,right,n-mid);
+  free(left)
+  free(right);
+}
+
+int create_test_data(int data_size){
+  /* QUESTION: How should I structure this? Does it make sense to read in a file? */
+  for(int i = 0; i < data_size; i++){
+    // seeded random number generator
+    // http://stackoverflow.com/questions/822323/how-to-generate-a-random-number-in-c
+  }
   return 0;
 }
 
 
-int main() 
-{
+int main() {
   printf( "I am alive!  Beware.\n" );
   getchar();
   return 0;
 }
 
+// update to read ratios
+// start uniformly distributed then try adding skey
+// read-write ratio to throughput
+// number of duplicates
+// have read only / write only benchmarks
+
+// write a single function per test
