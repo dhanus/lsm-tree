@@ -21,7 +21,8 @@ typedef struct _lsm{
   FILE *disk_fp;
 } lsm;
 
-lsm* fill_in_lsm(lsm* tree){
+lsm* initialize_lsm(){
+  lsm* tree;
   tree->block_size = 100; 
   tree->k = 2; 
   tree->next_empty = 0; 
@@ -141,12 +142,19 @@ void merge_sort(node *block, int n){
 }
 
 int create_test_data(int data_size){
-  /* QUESTION: How should I structure this? Does it make sense to read in a file? */
+  /* QUESTION: Is there a smart way to ensure that the keys and values are unique? */
+  srand(0);
+  int r;
+  lsm * l;
+  l = initialize_lsm();
+  printf("\n");
   for(int i = 0; i < data_size; i++){
-    // seeded random number generator
-    // http://stackoverflow.com/questions/822323/how-to-generate-a-random-number-in-c
+    int k = rand();
+    int v = rand();
+    r = put(k,v,l);
+    assert(r==0);
   }
-  return 0;
+  return r;
 }
 
 
@@ -156,6 +164,7 @@ int main() {
   return 0;
 }
 
+// TODO: things to test
 // update to read ratios
 // start uniformly distributed then try adding skey
 // read-write ratio to throughput
