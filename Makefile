@@ -1,4 +1,4 @@
-run: clean 
+run: 
 	gcc lsm.c -o lsm 
 	./lsm
 
