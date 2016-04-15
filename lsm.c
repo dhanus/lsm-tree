@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <assert.h>
 
-
 typedef int keyType;
 typedef int valType;
 
@@ -22,7 +21,9 @@ typedef struct _lsm{
 } lsm;
 
 lsm* initialize_lsm(){
+  printf("lsm:start\n");
   lsm* tree;
+  tree = malloc(sizeof(lsm));
   tree->block_size = 100; 
   tree->k = 2; 
   tree->next_empty = 0; 
@@ -32,61 +33,6 @@ lsm* initialize_lsm(){
 }
 
 /* on exit, write partial buffer to disk on file and meta data */
-
-
-node* get_node(keyType key, lsm* tree){
-  /* search the buffer for this item */
-  printf("searching level 1\n");
-  for (int i = 0; i < tree->block_size; i++){
-    if (tree->block[i].key == key){
-      return &tree->block[i];
-    }
-  }
-
-  /* search through the file on disk for this item */
-  printf("opening file\n");
-  tree->disk_fp  = fopen("disk_storage.txt", "rb+");
-  /* QUESTION: How does the void pointer in fread work? */
-  node *file_data;
-  size_t noe;
-  fread(&noe, sizeof(size_t), 1, tree->disk_fp);
-  file_data = malloc(sizeof(node)*noe);
-  fread(file_data, sizeof(node), noe, tree->disk_fp);
-
-  printf("searching level 2\n");
-  for(int i = 0; i < sizeof(file_data); i++){
-    if (file_data[i].key == key){
-      return &file_data[i];
-      }
-  }
-  /* If it does not find the given key, it will return NULL */
-  return NULL;
-}
-
-int put(keyType key, valType val, lsm* tree){
-  if(tree->next_empty == tree->block_size){
-    /* sort the block & write it to the next level */
-    /* QUESTION: Implement the sort algorithm */
-  } else{
-    node n;
-    n.key = key;
-    n.val = val;
-    tree->block[tree->next_empty] = n;
-    tree->next_empty += 1;
-  }
-  return 0;
-}
-
-
-int update(keyType key, valType val, lsm* tree){
-  /* search buffer, search disk, update value  */
-  node* n = get_node(key, tree);
-  assert(n != NULL);
-  n->val = val;
-  /* re-sort array */
-  /* TODO: Implement search */
-  return 1;
-}
 
 
 void merge(node *whole, node *left,int left_size,node *right,int right_size){
@@ -141,17 +87,74 @@ void merge_sort(node *block, int n){
   free(right);
 }
 
+
+node* get_node(keyType key, lsm* tree){
+  /* search the buffer for this item */
+  printf("searching level 1\n");
+  for (int i = 0; i < tree->block_size; i++){
+    if (tree->block[i].key == key){
+      return &tree->block[i];
+    }
+  }
+
+  /* search through the file on disk for this item */
+  printf("opening file\n");
+  tree->disk_fp  = fopen("disk_storage.txt", "rb+");
+  node *file_data;
+  size_t noe;
+  fread(&noe, sizeof(size_t), 1, tree->disk_fp);
+  file_data = malloc(sizeof(node)*noe);
+  fread(file_data, sizeof(node), noe, tree->disk_fp);
+
+  printf("searching level 2\n");
+  for(int i = 0; i < sizeof(file_data); i++){
+    if (file_data[i].key == key){
+      return &file_data[i];
+      }
+  }
+  /* If it does not find the given key, it will return NULL */
+  return NULL;
+}
+
+int put(keyType key, valType val, lsm* tree){
+  if(tree->next_empty == tree->block_size){
+    /* sort the block & write it to the next level */
+  } else{
+    node n;
+    n.key = key;
+    n.val = val;
+    tree->block[tree->next_empty] = n;
+    tree->next_empty += 1;
+  }
+  return 0;
+}
+
+
+int update(keyType key, valType val, lsm* tree){
+  /* search buffer, search disk, update value  */
+  node* n = get_node(key, tree);
+  assert(n != NULL);
+  n->val = val;
+  /* re-sort array */
+  /* QUESTION: What if we updae on disk?
+     How to tell which array this node is in? */
+  merge_sort(tree->block, tree->next_empty);
+  return 1;
+}
+
 int create_test_data(int data_size){
   /* QUESTION: Is there a smart way to ensure that the keys and values are unique? */
   srand(0);
   int r;
-  lsm * l;
-  l = initialize_lsm();
-  printf("\n");
+  lsm * tree;
+  tree = initialize_lsm();
   for(int i = 0; i < data_size; i++){
-    int k = rand();
-    int v = rand();
-    r = put(k,v,l);
+    keyType *k = malloc(sizeof(keyType));
+    valType *v = malloc(sizeof(valType));
+    //printf("about to define keyTypes \n");
+    k = rand();
+    v = rand();
+    r = put(k,v,tree);
     assert(r==0);
   }
   return r;
@@ -159,9 +162,9 @@ int create_test_data(int data_size){
 
 
 int main() {
-  printf( "I am alive!  Beware.\n" );
-  getchar();
-  return 0;
+  int r;
+  r = create_test_data(1000);
+  return r;
 }
 
 // TODO: things to test
