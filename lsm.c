@@ -152,8 +152,8 @@ int create_test_data(int data_size){
     keyType *k = malloc(sizeof(keyType));
     valType *v = malloc(sizeof(valType));
     //printf("about to define keyTypes \n");
-    k = rand();
-    v = rand();
+    k = (keyType)rand();
+    v = (valType)rand();
     r = put(k,v,tree);
     assert(r==0);
   }
