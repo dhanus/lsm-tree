@@ -18,10 +18,10 @@ typedef struct _lsm{
   size_t node_size;
   node *block;
   FILE *disk_fp;
+  size_t file_size;
 } lsm;
 
 lsm* initialize_lsm(){
-  printf("lsm:start\n");
   lsm* tree;
   tree = malloc(sizeof(lsm));
   tree->block_size = 100; 
@@ -29,6 +29,7 @@ lsm* initialize_lsm(){
   tree->next_empty = 0; 
   tree->node_size = sizeof(node);
   tree->block = malloc(tree->block_size*tree->node_size); 
+  tree->file_size = 0;
   return tree;
 }
 
@@ -96,17 +97,20 @@ node* get_node(keyType key, lsm* tree){
       return &tree->block[i];
     }
   }
-
   /* search through the file on disk for this item */
   printf("opening file\n");
   tree->disk_fp  = fopen("disk_storage.txt", "rb+");
+  if(tree->disk_fp == NULL){
+    perror("could not read file\n");
+    return NULL;
+  }
+  printf("opened file\n");
   node *file_data;
   size_t noe;
-  fread(&noe, sizeof(size_t), 1, tree->disk_fp);
+  printf("about to read file\n");
+  fread(&noe, sizeof(size_t), 1, tree->disk_fp); 
   file_data = malloc(sizeof(node)*noe);
-  fread(file_data, sizeof(node), noe, tree->disk_fp);
-
-  printf("searching level 2\n");
+  fread(&file_data, sizeof(node), noe, tree->disk_fp);
   for(int i = 0; i < sizeof(file_data); i++){
     if (file_data[i].key == key){
       return &file_data[i];
@@ -116,13 +120,38 @@ node* get_node(keyType key, lsm* tree){
   return NULL;
 }
 
-int put(keyType key, valType val, lsm* tree){
+int put(keyType* key, valType* val, lsm* tree){
   if(tree->next_empty == tree->block_size){
     /* sort the block & write it to the next level */
+    tree->disk_fp = fopen("disk_storage.txt", "wb+");
+    if(tree->disk_fp == NULL){
+      perror("could not open file\n");
+      return NULL;
+    }
+    // LATER: if memory is too small, implement external sort 
+    // define parameter what the available memory is. (hardcode how much memory)
+
+    // sort the buffer 
+    merge_sort(tree->block, tree->next_empty);
+    // read from the file into memory into a sorted array 
+    // assume that it fits into memory 
+    node *file_data;
+    size_t noe;
+    fread(&noe, sizeof(size_t), 1, tree->disk_fp);
+    file_data = malloc(sizeof(node)*noe);
+    fread(&file_data, sizeof(node), noe, tree->disk_fp);
+    // merge the sorted buffer and the sorted disk contents 
+    node *complete_data;
+    merge(complete_data, file_data, noe, tree->block,tree->next_empty);
+    // seek to the start of the file 
+    // QUESTION: Do I need to seek to after the number of elts. 
+    fseek(tree->disk_fp, 0, SEEK_SET); 
+    fwrite(complete_data, 1, sizeof(complete_data), tree->disk_fp);
+    fclose(tree->disk_fp);
   } else{
     node n;
-    n.key = key;
-    n.val = val;
+    n.key = *key;
+    n.val = *val;
     tree->block[tree->next_empty] = n;
     tree->next_empty += 1;
   }
@@ -130,17 +159,34 @@ int put(keyType key, valType val, lsm* tree){
 }
 
 
-int update(keyType key, valType val, lsm* tree){
+int update(keyType* key, valType* val, lsm* tree){
   /* search buffer, search disk, update value  */
-  node* n = get_node(key, tree);
+  node* n = get_node(*key, tree);
   assert(n != NULL);
-  n->val = val;
+  n->val = *val;
   /* re-sort array */
   /* QUESTION: What if we updae on disk?
      How to tell which array this node is in? */
   merge_sort(tree->block, tree->next_empty);
   return 1;
 }
+
+
+int test_get_data(lsm* tree){
+  printf("start get test_data\n");
+  srand(0);
+  for (int i = 0; i < 10; i++){
+    keyType *test_k = malloc(sizeof(keyType));
+    valType *test_v = malloc(sizeof(valType));
+    node* n;
+    printf("get node\n");
+    n =  get_node(*test_k, tree); 
+    printf("got node. about to assert\n");
+    assert(n->val == (valType)test_v);
+    }
+  return 0; 
+}
+
 
 int create_test_data(int data_size){
   /* QUESTION: Is there a smart way to ensure that the keys and values are unique? */
@@ -152,11 +198,12 @@ int create_test_data(int data_size){
     keyType *k = malloc(sizeof(keyType));
     valType *v = malloc(sizeof(valType));
     //printf("about to define keyTypes \n");
-    k = (keyType)rand();
-    v = (valType)rand();
+    *k = (keyType)rand();
+    *v = (valType)rand();
     r = put(k,v,tree);
     assert(r==0);
   }
+  r = test_get_data(tree);
   return r;
 }
 
