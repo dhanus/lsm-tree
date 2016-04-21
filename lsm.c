@@ -120,13 +120,17 @@ node* get_node(keyType key, lsm* tree){
   return NULL;
 }
 
+int print_tree(){
+  return 0; 
+}
+
 int put(keyType* key, valType* val, lsm* tree){
   if(tree->next_empty == tree->block_size){
     /* sort the block & write it to the next level */
     tree->disk_fp = fopen("disk_storage.txt", "wb+");
     if(tree->disk_fp == NULL){
       perror("could not open file\n");
-      return NULL;
+      return 0;
     }
     // LATER: if memory is too small, implement external sort 
     // define parameter what the available memory is. (hardcode how much memory)
@@ -143,10 +147,12 @@ int put(keyType* key, valType* val, lsm* tree){
     // merge the sorted buffer and the sorted disk contents 
     node *complete_data;
     merge(complete_data, file_data, noe, tree->block,tree->next_empty);
-    // seek to the start of the file 
-    // QUESTION: Do I need to seek to after the number of elts. 
+    // seek to the start of the file & write # of elements  
     fseek(tree->disk_fp, 0, SEEK_SET); 
-    fwrite(complete_data, 1, sizeof(complete_data), tree->disk_fp);
+    fwrite(&noe, 1, sizeof(noe), tree->disk_fp);
+    // seek to the first space after the number of elements 
+    fseek(tree->disk_fp, sizeof(noe), SEEK_SET); 
+    fwrite(&complete_data, 1, sizeof(complete_data), tree->disk_fp);
     fclose(tree->disk_fp);
   } else{
     node n;
