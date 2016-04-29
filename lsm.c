@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+#include <errno.h>
 
 typedef int keyType;
 typedef int valType;
