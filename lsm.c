@@ -9,14 +9,14 @@ typedef int valType;
 typedef struct _node{
   keyType key;
   valType val;
-  /* char *children; */
+  // char *children;
 } node;
 
 typedef struct _lsm{
   size_t block_size; /*This is the number of nodes each block can hold.*/
   int k;   /*The LSM tree grows in dimension k.*/
+  int node_size;
   size_t next_empty;
-  size_t node_size;
   node *block;
   FILE *disk_fp;
   size_t file_size;
@@ -25,12 +25,21 @@ typedef struct _lsm{
 lsm* initialize_lsm(){
   lsm* tree;
   tree = malloc(sizeof(lsm));
+  if(!tree){
+    perror("init_lsm: block is null \n");
+    return NULL;
+  }
   tree->block_size = 100; 
   tree->k = 2; 
   tree->next_empty = 0; 
   tree->node_size = sizeof(node);
   tree->block = malloc(tree->block_size*tree->node_size); 
+  if(!tree->block){
+    perror("init_lsm: block is null \n");
+    return NULL;
+  }
   tree->file_size = 0;
+  printf("initialized lsm \n");
   return tree;
 }
 
@@ -121,39 +130,52 @@ node* get_node(keyType key, lsm* tree){
   return NULL;
 }
 
-int print_tree(){
-  return 0; 
-}
-
 int put(keyType* key, valType* val, lsm* tree){
   if(tree->next_empty == tree->block_size){
     /* sort the block & write it to the next level */
-    tree->disk_fp = fopen("disk_storage.txt", "wb+");
+    tree->disk_fp = fopen("disk_storage.txt", "rb");
+    // if the file exists, init first byte to be 0
     if(tree->disk_fp == NULL){
-      perror("could not open file\n");
+      tree->disk_fp = fopen("disk_storage.txt", "rb+");
+      merge_sort(tree->block, tree->next_empty);
+      size_t noe = tree->next_empty-1;
+      fwrite(&noe, sizeof(noe), 1, tree->disk_fp);
+      fseek(tree->disk_fp, sizeof(noe), SEEK_SET);
+      fwrite(&tree->block,  sizeof(node),(noe+tree->next_empty), tree->disk_fp);
+      fclose(tree->disk_fp);
       return 0;
-    }
+    } else {
     // LATER: if memory is too small, implement external sort
     // define parameter what the available memory is. (hardcode how much memory)
     // sort the buffer
     merge_sort(tree->block, tree->next_empty);
     // read from the file into memory into a sorted array
     // assume that it fits into memory
+    // make sure that there is stuff there
     node *file_data;
-    size_t noe;
-    fread(&noe, sizeof(size_t), 1, tree->disk_fp);
+    size_t noe = 0;
+    fseek(tree->disk_fp, 0, SEEK_SET);
+    int r;
+    r = fread(&noe, sizeof(size_t), 1, tree->disk_fp);
     file_data = malloc(sizeof(node)*noe);
-    fread(&file_data, sizeof(node), noe, tree->disk_fp);
-    // merge the sorted buffer and the sorted disk contents 
-    node *complete_data;
+    assert(file_data);
+    r = fread(&file_data, sizeof(node), noe, tree->disk_fp);
+    // merge the sorted buffer and the sorted disk contents
+    node *complete_data = malloc(sizeof(node)*(noe+tree->next_empty));
     merge(complete_data, file_data, noe, tree->block,tree->next_empty);
     // seek to the start of the file & write # of elements
     fseek(tree->disk_fp, 0, SEEK_SET);
-    fwrite(&noe, 1, sizeof(noe), tree->disk_fp);
+    fwrite(&noe, sizeof(noe),1, tree->disk_fp);
     // seek to the first space after the number of elements
     fseek(tree->disk_fp, sizeof(noe), SEEK_SET);
-    fwrite(&complete_data, 1, sizeof(complete_data), tree->disk_fp);
+    fwrite(&complete_data,  sizeof(node),(noe+tree->next_empty), tree->disk_fp);
+    // reset next_empty to 0
+    // Question: Do I still want to do this if I'm writing a partial buffer?
+    tree->next_empty = 0;
     fclose(tree->disk_fp);
+    free(file_data);
+    free(complete_data);
+    }
   } else{
     node n;
     n.key = *key;
@@ -178,7 +200,20 @@ int update(keyType* key, valType* val, lsm* tree){
 }
 
 
-int test_get_data(lsm* tree){
+
+void test_print_tree(lsm* tree){
+  printf("starting print tree/n");
+  if(tree->next_empty < tree->block_size){
+    printf("data is not larger than the buffer\n");
+    for(int i=0; i < tree->next_empty; i++){
+      printf("key %i \n",tree->block[i].key);
+      printf("value %i\n",tree->block[i].val);
+    }
+  }
+}
+
+
+int test_get(lsm* tree){
   printf("start get test_data\n");
   srand(0);
   for (int i = 0; i < 10; i++){
@@ -186,37 +221,44 @@ int test_get_data(lsm* tree){
     valType *test_v = malloc(sizeof(valType));
     node* n;
     printf("get node\n");
-    n =  get_node(*test_k, tree); 
-    printf("got node. about to assert\n");
+    n =  get_node(*test_k, tree);
+    assert(n);
+    printf("got node. about to assert.\n"); 
+    printf("val is %i\n", n->val); 
+    printf("test_v is %i \n",(valType)test_v);
     assert(n->val == (valType)test_v);
     }
   return 0; 
 }
 
 
-int create_test_data(int data_size){
+int test_put(lsm* tree, int data_size){
   /* QUESTION: Is there a smart way to ensure that the keys and values are unique? */
+  assert(tree);
   srand(0);
   int r;
-  lsm * tree;
-  tree = initialize_lsm();
+  printf("start: create_test_data\n");
   for(int i = 0; i < data_size; i++){
     keyType *k = malloc(sizeof(keyType));
     valType *v = malloc(sizeof(valType));
-    //printf("about to define keyTypes \n");
-    *k = (keyType)rand();
-    *v = (valType)rand();
+    //printf("about to define keyTypes %i \n", i);
+    *k = (keyType)i;
+    *v = (valType)i;
     r = put(k,v,tree);
     assert(r==0);
   }
-  r = test_get_data(tree);
+  printf("test data created \n");
   return r;
 }
 
 
 int main() {
   int r;
-  r = create_test_data(1000);
+  int data_size = 110;
+  lsm* tree;
+  tree = initialize_lsm();
+  r = test_put(tree, data_size);
+  // print_tree(tree);
   return r;
 }
 
