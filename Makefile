@@ -1,5 +1,5 @@
 run: 
-	gcc lsm.c -o lsm 
+	gcc -g lsm.c -o lsm
 	./lsm
 
 clean: 
