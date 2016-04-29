@@ -6,4 +6,4 @@ clean:
 	rm lsm 
 	rm *~
 	rm *.dSYM
-	rm disk_storage.txt
+	rm *.txt

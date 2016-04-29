@@ -39,7 +39,7 @@ lsm* initialize_lsm(){
     return NULL;
   }
   tree->file_size = 0;
-  printf("initialized lsm \n");
+  printf("init_lsm: initialized lsm \n");
   return tree;
 }
 
@@ -136,9 +136,16 @@ int put(keyType* key, valType* val, lsm* tree){
     tree->disk_fp = fopen("disk_storage.txt", "rb");
     // if the file exists, init first byte to be 0
     if(tree->disk_fp == NULL){
-      tree->disk_fp = fopen("disk_storage.txt", "rb+");
+      printf(" entered NULL fp loop \n");
+      tree->disk_fp = fopen("disk_storage.txt", "wb");
+      printf("tried opening file\n");
+      if(tree->disk_fp == NULL){
+	perror("fopen not succesful\n");
+      }
       merge_sort(tree->block, tree->next_empty);
+      printf("sorted \n");
       size_t noe = tree->next_empty-1;
+      fseek(tree->disk_fp, 0, SEEK_SET);
       fwrite(&noe, sizeof(noe), 1, tree->disk_fp);
       fseek(tree->disk_fp, sizeof(noe), SEEK_SET);
       fwrite(&tree->block,  sizeof(node),(noe+tree->next_empty), tree->disk_fp);
@@ -154,7 +161,6 @@ int put(keyType* key, valType* val, lsm* tree){
     // make sure that there is stuff there
     node *file_data;
     size_t noe = 0;
-    fseek(tree->disk_fp, 0, SEEK_SET);
     int r;
     r = fread(&noe, sizeof(size_t), 1, tree->disk_fp);
     file_data = malloc(sizeof(node)*noe);
