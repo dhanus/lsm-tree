@@ -100,14 +100,14 @@ void merge_sort(node *block, int n){
 
 
 node* get_node(keyType key, lsm* tree){
-  /* search the buffer for this item */
+  // search the buffer for this item
   printf("searching level 1\n");
   for (int i = 0; i < tree->block_size; i++){
     if (tree->block[i].key == key){
       return &tree->block[i];
     }
   }
-  /* search through the file on disk for this item */
+  // search through the file on disk for this item
   printf("opening file\n");
   tree->disk_fp  = fopen("disk_storage.txt", "rb+");
   if(tree->disk_fp == NULL){
@@ -126,7 +126,7 @@ node* get_node(keyType key, lsm* tree){
       return &file_data[i];
       }
   }
-  /* If it does not find the given key, it will return NULL */
+  // If it does not find the given key, it will return NULL
   return NULL;
 }
 
@@ -206,7 +206,6 @@ int update(keyType* key, valType* val, lsm* tree){
 }
 
 
-
 void test_print_tree(lsm* tree){
   printf("starting print tree/n");
   if(tree->next_empty < tree->block_size){
@@ -264,7 +263,7 @@ int main() {
   lsm* tree;
   tree = initialize_lsm();
   r = test_put(tree, data_size);
-  // print_tree(tree);
+  test_print_tree(tree);
   return r;
 }
 
