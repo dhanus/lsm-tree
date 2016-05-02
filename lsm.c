@@ -3,6 +3,8 @@
 #include <assert.h>
 #include <errno.h>
 #include <time.h>
+#include <stdbool.h>
+#include <string.h>
 
 typedef int keyType;
 typedef int valType;
@@ -83,13 +85,9 @@ void merge_sort(node *block, int n){
   /* create and populate left and right subarrays */
   left = (node*)malloc(mid*sizeof(node));
   right = (node*)malloc((n-mid)*sizeof(node));
-  
-  for(i = 0; i < mid; i++){
-    left[i] = block[i];
-  }
-  for(i = mid;i<n;i++){
-    right[i-mid] = block[i];
-  }
+
+  memcpy(left, block, sizeof(node) * mid);
+  memcpy(right, &block[mid], sizeof(node) * (n - mid));
 
   /* sort and merge the two arrays */
   merge_sort(left,mid);  // sort left subarray
