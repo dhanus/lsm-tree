@@ -132,11 +132,11 @@ node* get(const keyType* key, lsm* tree){
 int put(const keyType* key, const valType* val, lsm* tree){
   if(tree->next_empty == tree->block_size){
     /* sort the block & write it to the next level */
-    tree->disk_fp = fopen("disk_storage.txt", "rb");
+    tree->disk_fp = fopen("disk_storage.txt", "r");
     // if the file exists, init first byte to be 0
     if(tree->disk_fp == NULL){
       printf(" entered NULL fp loop \n");
-      tree->disk_fp = fopen("disk_storage.txt", "wb");
+      tree->disk_fp = fopen("disk_storage.txt", "w");
       printf("tried opening file\n");
       if(tree->disk_fp == NULL){
 	perror("fopen not succesful\n");
@@ -204,10 +204,12 @@ int update(const keyType* key, const valType* val, lsm* tree){
   return 0;
 }
 
+
+
 void test_print_tree(lsm* tree){
   printf("starting print tree/n");
   FILE *f;
-  f = fopen("disk_storage.txt", "rb");
+  f = fopen("disk_storage.txt", "r");
   if(f == NULL && tree->next_empty != 0){
     printf("data fits in the buffer\n");
     for(int i = 0; i < tree->next_empty; i++){
