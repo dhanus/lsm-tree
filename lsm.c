@@ -12,7 +12,6 @@ typedef int valType;
 typedef struct _node{
   keyType key;
   valType val;
-  // char *children;
 } node;
 
 typedef struct _lsm{
@@ -223,10 +222,10 @@ void test_print_tree(lsm* tree){
 
 
     node *file_data;
-    size_t noe;
-    fread(&noe, sizeof(size_t), 1, f);
-    file_data = malloc(sizeof(node)*noe);
-    fread(&file_data, sizeof(node), noe, f);
+    size_t num_elements;
+    fread(&num_elements, sizeof(size_t), 1, f);
+    file_data = malloc(sizeof(node)*num_elements);
+    fread(&file_data, sizeof(node), num_elements, f);
     for(int i = 0; i < sizeof(file_data); i++){
       printf("key %i \n",file_data[i].key);
       printf("value %i\n",file_data[i].val);
@@ -241,10 +240,16 @@ void test_print_tree(lsm* tree){
     }
     printf("printing disk data\n");
     node *file_data;
-    size_t noe;
-    fread(&noe, sizeof(size_t), 1, f);
-    file_data = malloc(sizeof(node)*noe);
-    fread(file_data, sizeof(node), noe, f);
+    size_t num_elements;
+    fread(&num_elements, sizeof(size_t), 1, f);
+    if(&num_elements == NULL){
+      perror("put: fread: noe: unsuccessful allocation \n");
+    }
+    file_data = malloc(sizeof(node)*num_elements);
+    if(file_data == NULL){
+      perror("put: unsuccessful allocation \n");
+    }
+    fread(file_data, sizeof(node), num_elements, f);
     for(int i = 0; i < sizeof(file_data); i++){
       printf("key %d \n",file_data[i].key);
       printf("value %d\n",file_data[i].val);
