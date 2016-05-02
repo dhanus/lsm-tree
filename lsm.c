@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <errno.h>
+#include <time.h>
 
 typedef int keyType;
 typedef int valType;
@@ -20,6 +21,7 @@ typedef struct _lsm{
   node *block;
   FILE *disk_fp;
   size_t file_size;
+  bool sorted;
 } lsm;
 
 lsm* initialize_lsm(){
@@ -39,6 +41,7 @@ lsm* initialize_lsm(){
     return NULL;
   }
   tree->file_size = 0;
+  tree->sorted = true;
   printf("init_lsm: initialized lsm \n");
   return tree;
 }
@@ -140,8 +143,9 @@ int put(keyType* key, valType* val, lsm* tree){
       if(tree->disk_fp == NULL){
 	perror("fopen not succesful\n");
       }
-      merge_sort(tree->block, tree->next_empty);
-      printf("sorted \n");
+      if(tree->sorted){
+	merge_sort(tree->block, tree->next_empty);
+      }
       size_t noe = tree->next_empty-1;
       fseek(tree->disk_fp, 0, SEEK_SET);
       fwrite(&noe, sizeof(noe), 1, tree->disk_fp);
@@ -153,30 +157,32 @@ int put(keyType* key, valType* val, lsm* tree){
     // TODO: if memory is too small, implement external sort
     // define parameter what the available memory is. (hardcode how much memory)
     // sort the buffer
-    merge_sort(tree->block, tree->next_empty);
-    // Assumption: the data from disk fits in memory
-    node *file_data;
-    size_t noe = 0;
-    int r;
-    r = fread(&noe, sizeof(size_t), 1, tree->disk_fp);
-    file_data = malloc(sizeof(node)*noe);
-    assert(file_data);
-    r = fread(&file_data, sizeof(node), noe, tree->disk_fp);
-    // merge the sorted buffer and the sorted disk contents
-    node *complete_data = malloc(sizeof(node)*(noe+tree->next_empty));
-    merge(complete_data, file_data, noe, tree->block,tree->next_empty);
-    // seek to the start of the file & write # of elements
-    fseek(tree->disk_fp, 0, SEEK_SET);
-    fwrite(&noe, sizeof(noe),1, tree->disk_fp);
-    // seek to the first space after the number of elements
-    fseek(tree->disk_fp, sizeof(noe), SEEK_SET);
-    fwrite(&complete_data,  sizeof(node),(noe+tree->next_empty), tree->disk_fp);
-    // reset next_empty to 0
-    // Question: Do I still want to do this if I'm writing a partial buffer?
-    tree->next_empty = 0;
-    fclose(tree->disk_fp);
-    free(file_data);
-    free(complete_data);
+      if(tree->sorted){
+	merge_sort(tree->block, tree->next_empty);
+      }
+      // Assumption: the data from disk fits in memory
+      node *file_data;
+      size_t noe = 0;
+      int r;
+      r = fread(&noe, sizeof(size_t), 1, tree->disk_fp);
+      file_data = malloc(sizeof(node)*noe);
+      assert(file_data);
+      r = fread(&file_data, sizeof(node), noe, tree->disk_fp);
+      // merge the sorted buffer and the sorted disk contents
+      node *complete_data = malloc(sizeof(node)*(noe+tree->next_empty));
+      merge(complete_data, file_data, noe, tree->block,tree->next_empty);
+      // seek to the start of the file & write # of elements
+      fseek(tree->disk_fp, 0, SEEK_SET);
+      fwrite(&noe, sizeof(noe),1, tree->disk_fp);
+      // seek to the first space after the number of elements
+      fseek(tree->disk_fp, sizeof(noe), SEEK_SET);
+      fwrite(&complete_data,  sizeof(node),(noe+tree->next_empty), tree->disk_fp);
+      // reset next_empty to 0
+      // Question: Do I still want to do this if I'm writing a partial buffer?
+      tree->next_empty = 0;
+      fclose(tree->disk_fp);
+      free(file_data);
+      free(complete_data);
     }
   } else{
     node n;
@@ -193,14 +199,12 @@ int update(keyType* key, valType* val, lsm* tree){
   /* search buffer, search disk, update value  */
   node* n = get(*key, tree);
   assert(n != NULL);
-  n->val = *val;
-  /* re-sort array */
-  /* QUESTION: What if we updae on disk?
-     How to tell which array this node is in? */
-  merge_sort(tree->block, tree->next_empty);
-  return 1;
+  
+  if(tree->sorted){
+    merge_sort(tree->block, tree->next_empty);
+  }
+  return 0;
 }
-
 
 void test_print_tree(lsm* tree){
   printf("starting print tree/n");
@@ -215,6 +219,9 @@ void test_print_tree(lsm* tree){
   }
   if(f != NULL && tree->next_empty == 0){
     printf("data is only on disk\n");
+
+
+
     node *file_data;
     size_t noe;
     fread(&noe, sizeof(size_t), 1, f);
@@ -261,6 +268,7 @@ int test_get(lsm* tree){
     printf("test_v is %i \n",(valType)test_v);
     assert(n->val == (valType)test_v);
     }
+  printf("successfully tested get\n");
   return 0; 
 }
 
@@ -274,7 +282,6 @@ int test_put(lsm* tree, int data_size){
   for(int i = 0; i < data_size; i++){
     keyType *k = malloc(sizeof(keyType));
     valType *v = malloc(sizeof(valType));
-    //printf("about to define keyTypes %i \n", i);
     *k = (keyType)i;
     *v = (valType)i;
     r = put(k,v,tree);
@@ -288,13 +295,16 @@ int test_put(lsm* tree, int data_size){
 int main() {
   int r;
   int data_size = 150;
+  clock_t start, end;
   lsm* tree;
+  start = clock();
   tree = initialize_lsm();
   r = test_put(tree, data_size);
   test_print_tree(tree);
+  end = clock();
+  printf("s%\n", end-start);
   return r;
 }
-
 
 // TODO: things to test
 // update to read ratios
