@@ -5,5 +5,4 @@ run:
 clean: 
 	rm lsm 
 	rm *~
-	rm *.dSYM
-	rm *.txt
+	rm -rf *.dSYM
