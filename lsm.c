@@ -100,11 +100,11 @@ void merge_sort(node *block, int n){
 }
 
 
-node* get(keyType key, lsm* tree){
+node* get(const keyType* key, lsm* tree){
   // search the buffer for this item
   printf("searching level 1\n");
   for (int i = 0; i < tree->block_size; i++){
-    if (tree->block[i].key == key){
+    if (tree->block[i].key == *key){
       return &tree->block[i];
     }
   }
@@ -123,7 +123,7 @@ node* get(keyType key, lsm* tree){
   file_data = malloc(sizeof(node)*noe);
   fread(&file_data, sizeof(node), noe, tree->disk_fp);
   for(int i = 0; i < sizeof(file_data); i++){
-    if (file_data[i].key == key){
+    if (file_data[i].key == *key){
       return &file_data[i];
       }
   }
@@ -131,7 +131,7 @@ node* get(keyType key, lsm* tree){
   return NULL;
 }
 
-int put(keyType* key, valType* val, lsm* tree){
+int put(const keyType* key, const valType* val, lsm* tree){
   if(tree->next_empty == tree->block_size){
     /* sort the block & write it to the next level */
     tree->disk_fp = fopen("disk_storage.txt", "rb");
@@ -176,7 +176,7 @@ int put(keyType* key, valType* val, lsm* tree){
       fwrite(&noe, sizeof(noe),1, tree->disk_fp);
       // seek to the first space after the number of elements
       fseek(tree->disk_fp, sizeof(noe), SEEK_SET);
-      fwrite(&complete_data,  sizeof(node),(noe+tree->next_empty), tree->disk_fp);
+      fwrite(complete_data,  sizeof(node),(noe+tree->next_empty), tree->disk_fp);
       // reset next_empty to 0
       // Question: Do I still want to do this if I'm writing a partial buffer?
       tree->next_empty = 0;
@@ -195,9 +195,9 @@ int put(keyType* key, valType* val, lsm* tree){
 }
 
 
-int update(keyType* key, valType* val, lsm* tree){
+int update(const keyType* key, const valType* val, lsm* tree){
   /* search buffer, search disk, update value  */
-  node* n = get(*key, tree);
+  node* n = get(key, tree);
   assert(n != NULL);
   
   if(tree->sorted){
@@ -257,16 +257,14 @@ int test_get(lsm* tree){
   printf("start get test_data\n");
   srand(0);
   for (int i = 0; i < 10; i++){
-    keyType *test_k = malloc(sizeof(keyType));
-    valType *test_v = malloc(sizeof(valType));
+    keyType test_k;
     node* n;
     printf("get node\n");
-    n =  get(*test_k, tree);
+    n =  get(&test_k, tree);
     assert(n);
     printf("got node. about to assert.\n"); 
-    printf("val is %i\n", n->val); 
-    printf("test_v is %i \n",(valType)test_v);
-    assert(n->val == (valType)test_v);
+    printf("val is %d\n", n->val); 
+    assert(n->val == (valType)test_k);
     }
   printf("successfully tested get\n");
   return 0; 
@@ -280,11 +278,11 @@ int test_put(lsm* tree, int data_size){
   int r;
   printf("start: create_test_data\n");
   for(int i = 0; i < data_size; i++){
-    keyType *k = malloc(sizeof(keyType));
-    valType *v = malloc(sizeof(valType));
-    *k = (keyType)i;
-    *v = (valType)i;
-    r = put(k,v,tree);
+    keyType k;
+    valType v;
+    k = (keyType)i;
+    v = (valType)i;
+    r = put(&k,&v,tree);
     assert(r==0);
   }
   printf("test data created \n");
@@ -302,7 +300,7 @@ int main() {
   r = test_put(tree, data_size);
   test_print_tree(tree);
   end = clock();
-  printf("s%\n", end-start);
+  printf("%ldms\n", end-start);
   return r;
 }
 
