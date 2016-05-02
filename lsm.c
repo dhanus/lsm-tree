@@ -165,7 +165,7 @@ int put(const keyType* key, const valType* val, lsm* tree){
       r = fread(&noe, sizeof(size_t), 1, tree->disk_fp);
       file_data = malloc(sizeof(node)*noe);
       assert(file_data);
-      r = fread(&file_data, sizeof(node), noe, tree->disk_fp);
+      r = fread(file_data, sizeof(node), noe, tree->disk_fp);
       // merge the sorted buffer and the sorted disk contents
       node *complete_data = malloc(sizeof(node)*(noe+tree->next_empty));
       merge(complete_data, file_data, noe, tree->block,tree->next_empty);
@@ -244,10 +244,10 @@ void test_print_tree(lsm* tree){
     size_t noe;
     fread(&noe, sizeof(size_t), 1, f);
     file_data = malloc(sizeof(node)*noe);
-    fread(&file_data, sizeof(node), noe, f);
+    fread(file_data, sizeof(node), noe, f);
     for(int i = 0; i < sizeof(file_data); i++){
-      printf("key %i \n",file_data[i].key);
-      printf("value %i\n",file_data[i].val);
+      printf("key %d \n",file_data[i].key);
+      printf("value %d\n",file_data[i].val);
     }
   }
  }
