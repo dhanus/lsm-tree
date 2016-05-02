@@ -21,7 +21,7 @@ typedef struct _lsm{
   node *block;
   FILE *disk_fp;
   size_t file_size;
-  bool sorted;
+  int sorted;
 } lsm;
 
 lsm* initialize_lsm(){
@@ -41,7 +41,7 @@ lsm* initialize_lsm(){
     return NULL;
   }
   tree->file_size = 0;
-  tree->sorted = true;
+  tree->sorted = 1;
   printf("init_lsm: initialized lsm \n");
   return tree;
 }
