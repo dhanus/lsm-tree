@@ -13,8 +13,8 @@ typedef struct _node{
 } node;
 
 typedef struct _lsm{
-  size_t block_size; /*This is the number of nodes each block can hold.*/
-  int k;   /*The LSM tree grows in dimension k.*/
+  size_t block_size; // This is the number of nodes each block can hold.
+  int k; // The LSM tree grows in dimension k.
   int node_size;
   size_t next_empty;
   node *block;
@@ -42,8 +42,6 @@ lsm* initialize_lsm(){
   printf("init_lsm: initialized lsm \n");
   return tree;
 }
-
-/* on exit, write partial buffer to disk on file and meta data */
 
 
 void merge(node *whole, node *left,int left_size,node *right,int right_size){
@@ -79,7 +77,7 @@ void merge_sort(node *block, int n){
   node *left;
   node *right;
 
-  /* create and populate left and right subarrays*/
+  /* create and populate left and right subarrays */
   left = (node*)malloc(mid*sizeof(node));
   right = (node*)malloc((n-mid)*sizeof(node));
   
@@ -99,7 +97,7 @@ void merge_sort(node *block, int n){
 }
 
 
-node* get_node(keyType key, lsm* tree){
+node* get(keyType key, lsm* tree){
   // search the buffer for this item
   printf("searching level 1\n");
   for (int i = 0; i < tree->block_size; i++){
@@ -109,7 +107,7 @@ node* get_node(keyType key, lsm* tree){
   }
   // search through the file on disk for this item
   printf("opening file\n");
-  tree->disk_fp  = fopen("disk_storage.txt", "rb+");
+  tree->disk_fp  = fopen("disk_storage.txt", "rb");
   if(tree->disk_fp == NULL){
     perror("could not read file\n");
     return NULL;
@@ -152,13 +150,11 @@ int put(keyType* key, valType* val, lsm* tree){
       fclose(tree->disk_fp);
       return 0;
     } else {
-    // LATER: if memory is too small, implement external sort
+    // TODO: if memory is too small, implement external sort
     // define parameter what the available memory is. (hardcode how much memory)
     // sort the buffer
     merge_sort(tree->block, tree->next_empty);
-    // read from the file into memory into a sorted array
-    // assume that it fits into memory
-    // make sure that there is stuff there
+    // Assumption: the data from disk fits in memory
     node *file_data;
     size_t noe = 0;
     int r;
@@ -195,7 +191,7 @@ int put(keyType* key, valType* val, lsm* tree){
 
 int update(keyType* key, valType* val, lsm* tree){
   /* search buffer, search disk, update value  */
-  node* n = get_node(*key, tree);
+  node* n = get(*key, tree);
   assert(n != NULL);
   n->val = *val;
   /* re-sort array */
@@ -208,14 +204,46 @@ int update(keyType* key, valType* val, lsm* tree){
 
 void test_print_tree(lsm* tree){
   printf("starting print tree/n");
-  if(tree->next_empty < tree->block_size){
-    printf("data is not larger than the buffer\n");
-    for(int i=0; i < tree->next_empty; i++){
+  FILE *f;
+  f = fopen("disk_storage.txt", "rb");
+  if(f == NULL && tree->next_empty != 0){
+    printf("data fits in the buffer\n");
+    for(int i = 0; i < tree->next_empty; i++){
       printf("key %i \n",tree->block[i].key);
       printf("value %i\n",tree->block[i].val);
     }
   }
-}
+  if(f != NULL && tree->next_empty == 0){
+    printf("data is only on disk\n");
+    node *file_data;
+    size_t noe;
+    fread(&noe, sizeof(size_t), 1, f);
+    file_data = malloc(sizeof(node)*noe);
+    fread(&file_data, sizeof(node), noe, f);
+    for(int i = 0; i < sizeof(file_data); i++){
+      printf("key %i \n",file_data[i].key);
+      printf("value %i\n",file_data[i].val);
+    }
+  }
+  if(f != NULL && tree->next_empty != 0){
+    printf("data is in buffer & on disk\n");
+    printf("printing buffer data\n");
+    for(int i = 0; i < tree->next_empty; i++){
+      printf("key %i \n",tree->block[i].key);
+      printf("value %i\n",tree->block[i].val);
+    }
+    printf("printing disk data\n");
+    node *file_data;
+    size_t noe;
+    fread(&noe, sizeof(size_t), 1, f);
+    file_data = malloc(sizeof(node)*noe);
+    fread(&file_data, sizeof(node), noe, f);
+    for(int i = 0; i < sizeof(file_data); i++){
+      printf("key %i \n",file_data[i].key);
+      printf("value %i\n",file_data[i].val);
+    }
+  }
+ }
 
 
 int test_get(lsm* tree){
@@ -226,7 +254,7 @@ int test_get(lsm* tree){
     valType *test_v = malloc(sizeof(valType));
     node* n;
     printf("get node\n");
-    n =  get_node(*test_k, tree);
+    n =  get(*test_k, tree);
     assert(n);
     printf("got node. about to assert.\n"); 
     printf("val is %i\n", n->val); 
@@ -259,13 +287,14 @@ int test_put(lsm* tree, int data_size){
 
 int main() {
   int r;
-  int data_size = 110;
+  int data_size = 150;
   lsm* tree;
   tree = initialize_lsm();
   r = test_put(tree, data_size);
   test_print_tree(tree);
   return r;
 }
+
 
 // TODO: things to test
 // update to read ratios
@@ -275,3 +304,4 @@ int main() {
 // have read only / write only benchmarks
 
 // write a single function per test
+/* on exit, write partial buffer to disk on file and meta data */
