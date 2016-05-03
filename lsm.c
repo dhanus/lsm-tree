@@ -25,6 +25,10 @@ typedef struct _lsm{
   bool sorted;
 } lsm;
 
+typedef struct _nodei{
+  node *node;
+  int index;
+} nodei;
 
 lsm* initialize_lsm(){
   lsm* tree;
@@ -105,16 +109,19 @@ void merge_sort(node *block, int n){
 }
 
 
-node* search_buffer(const keyType* key, lsm* tree){
+nodei* search_buffer(const keyType* key, lsm* tree){
   for (int i = 0; i < tree->block_size; i++){
     if (tree->block[i].key == *key){
-      return &tree->block[i];
+      nodei* nodei = malloc(sizeof(nodei));
+      nodei.node = &tree->block[i];
+      nodei.index = i;
+      return nodei;
     }
   }  
   return NULL;
 }
 
-node* search_disk(const keyType* key, lsm* tree){
+nodei* search_disk(const keyType* key, lsm* tree){
   printf("opening file\n");
     tree->disk_fp  = fopen("disk_storage.txt", "rb");
     if(tree->disk_fp == NULL){
@@ -130,7 +137,10 @@ node* search_disk(const keyType* key, lsm* tree){
     fread(&file_data, sizeof(node), num_elements, tree->disk_fp);
     for(int i = 0; i < sizeof(file_data); i++){
       if (file_data[i].key == *key){
-	return &file_data[i];
+	nodei* nodei = malloc(sizeof(nodei));
+	nodei.node = &file_data[i];
+	nodei.index = i;
+	return nodei;
       }
     }
   return NULL; 
@@ -138,15 +148,16 @@ node* search_disk(const keyType* key, lsm* tree){
 
 node* get(const keyType* key, lsm* tree){
   // search the buffer for this item
-  node* n = search_buffer(key, tree) 
-  if(n != NULL){
-    return n 
+  nodei* ni = search_buffer(key, tree);
+  assert(ni);
+  if(ni->node != NULL){
+    return ni.node;
   } else{
     // search through the file on disk for this item
-    n = search_disk(key, tree);  
+    ni = search_disk(key, tree);
   }
   // If it does not find the given key, it will return NULL
-  return n;
+  return ni.node;
 }
 
 int put(const keyType* key, const valType* val, lsm* tree){
@@ -164,11 +175,11 @@ int put(const keyType* key, const valType* val, lsm* tree){
       if(tree->sorted){
 	merge_sort(tree->block, tree->next_empty);
       }
-      size_t noe = tree->next_empty-1;
+      size_t num_elements = tree->next_empty-1;
       fseek(tree->disk_fp, 0, SEEK_SET);
-      fwrite(&noe, sizeof(noe), 1, tree->disk_fp);
-      fseek(tree->disk_fp, sizeof(noe), SEEK_SET);
-      fwrite(&tree->block,  sizeof(node),(noe+tree->next_empty), tree->disk_fp);
+      fwrite(&noe, sizeof(num_elements), 1, tree->disk_fp);
+      fseek(tree->disk_fp, sizeof(num_elements), SEEK_SET);
+      fwrite(&tree->block,  sizeof(node),(num_elements+tree->next_empty), tree->disk_fp);
       fclose(tree->disk_fp);
       return 0;
     } else {
@@ -180,21 +191,21 @@ int put(const keyType* key, const valType* val, lsm* tree){
       }
       // Assumption: the data from disk fits in memory
       node *file_data;
-      size_t noe = 0;
+      size_t num_elements = 0;
       int r;
-      r = fread(&noe, sizeof(size_t), 1, tree->disk_fp);
-      file_data = malloc(sizeof(node)*noe);
+      r = fread(&num_elements, sizeof(size_t), 1, tree->disk_fp);
+      file_data = malloc(sizeof(node)*num_elements);
       assert(file_data);
-      r = fread(file_data, sizeof(node), noe, tree->disk_fp);
+      r = fread(file_data, sizeof(node), num_elements, tree->disk_fp);
       // merge the sorted buffer and the sorted disk contents
-      node *complete_data = malloc(sizeof(node)*(noe+tree->next_empty));
-      merge(complete_data, file_data, noe, tree->block,tree->next_empty);
+      node *complete_data = malloc(sizeof(node)*(num_elements+tree->next_empty));
+      merge(complete_data, file_data, num_elements, tree->block,tree->next_empty);
       // seek to the start of the file & write # of elements
       fseek(tree->disk_fp, 0, SEEK_SET);
-      fwrite(&noe, sizeof(noe),1, tree->disk_fp);
+      fwrite(&num_elements, sizeof(num_elements),1, tree->disk_fp);
       // seek to the first space after the number of elements
-      fseek(tree->disk_fp, sizeof(noe), SEEK_SET);
-      fwrite(complete_data,  sizeof(node),(noe+tree->next_empty), tree->disk_fp);
+      fseek(tree->disk_fp, sizeof(num_elements), SEEK_SET);
+      fwrite(complete_data,  sizeof(node),(num_elements+tree->next_empty), tree->disk_fp);
       // reset next_empty to 0
       // Question: Do I still want to do this if I'm writing a partial buffer?
       tree->next_empty = 0;
@@ -215,8 +226,28 @@ int put(const keyType* key, const valType* val, lsm* tree){
 
 int update(const keyType* key, const valType* val, lsm* tree){
   /* search buffer, search disk, update value  */
-  
-  
+  nodei* ni = search_buffer(key, tree);
+  if(ni != NULL){
+    ni->node.key = *key;
+    ni->node.val = *val;
+    tree->block[ni->index] = ni.node;
+  } else {
+    ni = search_disk(key, tree);
+    if(ni != NULL){
+      ni->node.key = *key;
+      ni->node.val = *val;
+      fseek(tree->disk_fp, 0, SEEK_SET);
+      fwrite(&noe, sizeof(noe),1, tree->disk_fp);
+      // seek to the first space after the number of elements
+      fseek(tree->disk_fp, sizeof(noe), SEEK_SET);
+      fwrite(complete_data,  sizeof(node),(noe+tree->next_empty), tree->disk_fp);
+      // reset next_empty to 0
+      // Question: Do I still want to do this if I'm writing a partial buffer?
+      tree->next_empty = 0;
+      fclose(tree->disk_fp);
+      free(file_data);
+    }
+  }
   return 0;
 }
 
