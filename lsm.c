@@ -351,15 +351,18 @@ int test_put(lsm* tree, int data_size){
 }
 
 int test_update(lsm* tree){
-    keyType k;
-    valType v;
-    k = (keyType)rand();
-    v = (valType)rand();
-    int r = update(&k, &v, tree);
-    return r;
+  printf("testing update\n");
+  keyType k;
+  valType v;
+  k = (keyType)rand();
+  v = (valType)rand();
+  int r = update(&k, &v, tree);
+  printf("tested update\n");
+  return r;
 }
 
 int test_throughput(lsm* tree){
+  printf("testing throughtput\n");
   srand(0); 
   int rand_val = rand() % 99;
   if(rand_val <= 33){
@@ -379,6 +382,7 @@ int test_throughput(lsm* tree){
     k = (keyType)rand();
     get(&k, tree);
   }
+  printf("testedthroughtput\n");
   return 0; 
 }
 
@@ -392,6 +396,9 @@ int main() {
   tree = initialize_lsm();
   r = test_put(tree, data_size);
   test_print_tree(tree);
+  r  = test_get(tree);
+  r = test_update(tree);
+  r = test_throughput(tree);
   end = clock();
   printf("%ldms\n", end-start);
   return r;
