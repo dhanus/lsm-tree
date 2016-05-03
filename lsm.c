@@ -113,8 +113,8 @@ nodei* search_buffer(const keyType* key, lsm* tree){
   for (int i = 0; i < tree->block_size; i++){
     if (tree->block[i].key == *key){
       nodei* nodei = malloc(sizeof(nodei));
-      nodei.node = &tree->block[i];
-      nodei.index = i;
+      nodei->node = &tree->block[i];
+      nodei->index = i;
       return nodei;
     }
   }  
@@ -138,8 +138,8 @@ nodei* search_disk(const keyType* key, lsm* tree){
     for(int i = 0; i < sizeof(file_data); i++){
       if (file_data[i].key == *key){
 	nodei* nodei = malloc(sizeof(nodei));
-	nodei.node = &file_data[i];
-	nodei.index = i;
+	nodei->node = &file_data[i];
+	nodei->index = i;
 	return nodei;
       }
     }
@@ -151,13 +151,13 @@ node* get(const keyType* key, lsm* tree){
   nodei* ni = search_buffer(key, tree);
   assert(ni);
   if(ni->node != NULL){
-    return ni.node;
+    return ni->node;
   } else{
     // search through the file on disk for this item
     ni = search_disk(key, tree);
   }
   // If it does not find the given key, it will return NULL
-  return ni.node;
+  return ni->node;
 }
 
 int put(const keyType* key, const valType* val, lsm* tree){
@@ -177,7 +177,7 @@ int put(const keyType* key, const valType* val, lsm* tree){
       }
       size_t num_elements = tree->next_empty-1;
       fseek(tree->disk_fp, 0, SEEK_SET);
-      fwrite(&noe, sizeof(num_elements), 1, tree->disk_fp);
+      fwrite(&num_elements, sizeof(num_elements), 1, tree->disk_fp);
       fseek(tree->disk_fp, sizeof(num_elements), SEEK_SET);
       fwrite(&tree->block,  sizeof(node),(num_elements+tree->next_empty), tree->disk_fp);
       fclose(tree->disk_fp);
@@ -226,21 +226,29 @@ int put(const keyType* key, const valType* val, lsm* tree){
 
 int update(const keyType* key, const valType* val, lsm* tree){
   /* search buffer, search disk, update value  */
+  printf("updating things\n");
   nodei* ni = search_buffer(key, tree);
   if(ni != NULL){
-    ni->node.key = *key;
-    ni->node.val = *val;
-    tree->block[ni->index] = ni.node;
+    node n;
+    n.key = *key;
+    n.val = *val;
+    tree->block[ni->index] = n;
   } else {
     ni = search_disk(key, tree);
     if(ni != NULL){
-      ni->node.key = *key;
-      ni->node.val = *val;
-      fseek(tree->disk_fp, 0, SEEK_SET);
-      fwrite(&noe, sizeof(noe),1, tree->disk_fp);
+      int i = ni->index;
+      node *file_data;
+      size_t num_elements = 0;
+      int r;
+      r = fread(&num_elements, sizeof(size_t), 1, tree->disk_fp);
+      file_data = malloc(sizeof(node)*num_elements);
+      assert(file_data);
+      r = fread(file_data, sizeof(node), num_elements, tree->disk_fp);
+      file_data[i].key = *key;
+      file_data[i].val = *val;
       // seek to the first space after the number of elements
-      fseek(tree->disk_fp, sizeof(noe), SEEK_SET);
-      fwrite(complete_data,  sizeof(node),(noe+tree->next_empty), tree->disk_fp);
+      fseek(tree->disk_fp, sizeof(node)*(i+1), SEEK_SET);
+      fwrite(file_data,  sizeof(node),num_elements, tree->disk_fp);
       // reset next_empty to 0
       // Question: Do I still want to do this if I'm writing a partial buffer?
       tree->next_empty = 0;
@@ -248,6 +256,7 @@ int update(const keyType* key, const valType* val, lsm* tree){
       free(file_data);
     }
   }
+  printf("update finished\n");
   return 0;
 }
 
@@ -341,15 +350,34 @@ int test_put(lsm* tree, int data_size){
   return r;
 }
 
+int test_update(lsm* tree){
+    keyType k;
+    valType v;
+    k = (keyType)rand();
+    v = (valType)rand();
+    int r = update(&k, &v, tree);
+    return r;
+}
+
 int test_throughput(lsm* tree){
   srand(0); 
   int rand_val = rand() % 99;
   if(rand_val <= 33){
-    put();
+    keyType k;
+    valType v;
+    k = (keyType)rand();
+    v = (valType)rand();
+    put(&k,&v, tree);
   }else if(rand_val > 33 && rand_val <= 66){
-    update(); 
+    keyType k;
+    valType v;
+    k = (keyType)rand();
+    v = (valType)rand();
+    update(&k, &v, tree);
   } else {
-    get(); 
+    keyType k;
+    k = (keyType)rand();
+    get(&k, tree);
   }
   return 0; 
 }
