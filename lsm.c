@@ -22,8 +22,9 @@ typedef struct _lsm{
   node *block;
   FILE *disk_fp;
   size_t file_size;
-  int sorted;
+  bool sorted;
 } lsm;
+
 
 lsm* initialize_lsm(){
   lsm* tree;
@@ -41,12 +42,19 @@ lsm* initialize_lsm(){
     perror("init_lsm: block is null \n");
     return NULL;
   }
+  tree->disk_fp = NULL;
   tree->file_size = 0;
-  tree->sorted = 1;
+  tree->sorted = true;
   printf("init_lsm: initialized lsm \n");
   return tree;
 }
 
+size_t get_file_size(FILE *f){
+  fseek(f, 0, SEEK_END); // seek to end of file
+  size_t s = ftell(f); // get current file pointer
+  fseek(f, 0, SEEK_SET); // seek to end of file
+  return s; 
+}
 
 void merge(node *whole, node *left,int left_size,node *right,int right_size){
   int l, r, i;
@@ -97,35 +105,48 @@ void merge_sort(node *block, int n){
 }
 
 
-node* get(const keyType* key, lsm* tree){
-  // search the buffer for this item
-  printf("searching level 1\n");
+node* search_buffer(const keyType* key, lsm* tree){
   for (int i = 0; i < tree->block_size; i++){
     if (tree->block[i].key == *key){
       return &tree->block[i];
     }
-  }
-  // search through the file on disk for this item
+  }  
+  return NULL;
+}
+
+node* search_disk(const keyType* key, lsm* tree){
   printf("opening file\n");
-  tree->disk_fp  = fopen("disk_storage.txt", "rb");
-  if(tree->disk_fp == NULL){
-    perror("could not read file\n");
-    return NULL;
-  }
-  printf("opened file\n");
-  node *file_data;
-  size_t noe;
-  printf("about to read file\n");
-  fread(&noe, sizeof(size_t), 1, tree->disk_fp); 
-  file_data = malloc(sizeof(node)*noe);
-  fread(&file_data, sizeof(node), noe, tree->disk_fp);
-  for(int i = 0; i < sizeof(file_data); i++){
-    if (file_data[i].key == *key){
-      return &file_data[i];
+    tree->disk_fp  = fopen("disk_storage.txt", "rb");
+    if(tree->disk_fp == NULL){
+      perror("could not read file\n");
+      return NULL;
+    }
+    printf("opened file\n");
+    node *file_data;
+    size_t num_elements;;
+    printf("about to read file\n");
+    fread(&num_elements, sizeof(size_t), 1, tree->disk_fp); 
+    file_data = malloc(sizeof(node)*num_elements);
+    fread(&file_data, sizeof(node), num_elements, tree->disk_fp);
+    for(int i = 0; i < sizeof(file_data); i++){
+      if (file_data[i].key == *key){
+	return &file_data[i];
       }
+    }
+  return NULL; 
+}
+
+node* get(const keyType* key, lsm* tree){
+  // search the buffer for this item
+  node* n = search_buffer(key, tree) 
+  if(n != NULL){
+    return n 
+  } else{
+    // search through the file on disk for this item
+    n = search_disk(key, tree);  
   }
   // If it does not find the given key, it will return NULL
-  return NULL;
+  return n;
 }
 
 int put(const keyType* key, const valType* val, lsm* tree){
@@ -194,67 +215,62 @@ int put(const keyType* key, const valType* val, lsm* tree){
 
 int update(const keyType* key, const valType* val, lsm* tree){
   /* search buffer, search disk, update value  */
-  node* n = get(key, tree);
-  assert(n != NULL);
   
-  if(tree->sorted){
-    merge_sort(tree->block, tree->next_empty);
-  }
+  
   return 0;
 }
 
+void print_buffer_data(lsm* tree){
+  printf("printing buffer data\n");
+  for(int i = 0; i < tree->next_empty; i++){
+    printf("key %i \n",tree->block[i].key);
+    printf("value %i\n",tree->block[i].val);
+  }
+}
 
+void print_disk_data(lsm* tree){
+  printf("printing disk data\n");
+  tree->disk_fp = fopen("disk_storage.txt", "r"); 
+  node *file_data;
+  size_t num_elements = 0;
+  int r = fread(&num_elements, sizeof(size_t), 1, tree->disk_fp);
+  if(r == 0){ 
+    if(ferror(tree->disk_fp)){
+	perror("ferror\n");
+    }
+    else if(feof(tree->disk_fp)){
+      perror("EOF found\n");
+    }
+  }
+  file_data = malloc(sizeof(node)*num_elements);
+  if(file_data == NULL){
+    perror("put: unsuccessful allocation \n");
+  }
+  fread(file_data, sizeof(node), num_elements, tree->disk_fp);
+  for(int i = 0; i < sizeof(file_data); i++){
+    printf("key %d \n",file_data[i].key);
+    printf("value %d\n",file_data[i].val);
+  }
+}
 
 void test_print_tree(lsm* tree){
-  printf("starting print tree/n");
-  FILE *f;
-  f = fopen("disk_storage.txt", "r");
-  if(f == NULL && tree->next_empty != 0){
+  printf("starting print tree\n");
+  size_t file_size = get_file_size(tree->disk_fp); 
+  printf("file size: %zu \n");
+   if(file_size == 0 && tree->next_empty != 0){
     printf("data fits in the buffer\n");
-    for(int i = 0; i < tree->next_empty; i++){
-      printf("key %i \n",tree->block[i].key);
-      printf("value %i\n",tree->block[i].val);
-    }
+    print_buffer_data(tree);
   }
-  if(f != NULL && tree->next_empty == 0){
+  if(file_size > 0 && tree->next_empty == 0){
     printf("data is only on disk\n");
-
-
-
-    node *file_data;
-    size_t num_elements;
-    fread(&num_elements, sizeof(size_t), 1, f);
-    file_data = malloc(sizeof(node)*num_elements);
-    fread(&file_data, sizeof(node), num_elements, f);
-    for(int i = 0; i < sizeof(file_data); i++){
-      printf("key %i \n",file_data[i].key);
-      printf("value %i\n",file_data[i].val);
-    }
+    print_disk_data(tree);
   }
-  if(f != NULL && tree->next_empty != 0){
+  if(file_size > 0 && tree->next_empty != 0){
     printf("data is in buffer & on disk\n");
-    printf("printing buffer data\n");
-    for(int i = 0; i < tree->next_empty; i++){
-      printf("key %i \n",tree->block[i].key);
-      printf("value %i\n",tree->block[i].val);
-    }
-    printf("printing disk data\n");
-    node *file_data;
-    size_t num_elements;
-    fread(&num_elements, sizeof(size_t), 1, f);
-    if(&num_elements == NULL){
-      perror("put: fread: noe: unsuccessful allocation \n");
-    }
-    file_data = malloc(sizeof(node)*num_elements);
-    if(file_data == NULL){
-      perror("put: unsuccessful allocation \n");
-    }
-    fread(file_data, sizeof(node), num_elements, f);
-    for(int i = 0; i < sizeof(file_data); i++){
-      printf("key %d \n",file_data[i].key);
-      printf("value %d\n",file_data[i].val);
-    }
+    print_buffer_data(tree);
+    print_disk_data(tree);
   }
+  printf("tree printed \n");
  }
 
 
@@ -292,6 +308,19 @@ int test_put(lsm* tree, int data_size){
   }
   printf("test data created \n");
   return r;
+}
+
+int test_throughput(lsm* tree){
+  srand(0); 
+  int rand_val = rand() % 99;
+  if(rand_val <= 33){
+    put();
+  }else if(rand_val > 33 && rand_val <= 66){
+    update(); 
+  } else {
+    get(); 
+  }
+  return 0; 
 }
 
 
