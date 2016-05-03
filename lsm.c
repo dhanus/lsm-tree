@@ -149,8 +149,7 @@ nodei* search_disk(const keyType* key, lsm* tree){
 node* get(const keyType* key, lsm* tree){
   // search the buffer for this item
   nodei* ni = search_buffer(key, tree);
-  assert(ni);
-  if(ni->node != NULL){
+  if(ni != NULL){
     return ni->node;
   } else{
     // search through the file on disk for this item
