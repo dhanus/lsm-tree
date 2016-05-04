@@ -1,6 +1,10 @@
+all: compile
+
 run: 
-	gcc -ggdb lsm.c -o lsm
 	./lsm
+
+compile:
+	gcc -ggdb -g -O0 lsm.c -o lsm
 
 clean: 
 	rm lsm 
