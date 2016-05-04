@@ -152,7 +152,6 @@ nodei* search_disk(const keyType* key, lsm* tree){
     perror("search_disk: open 1: \n");
     return NULL;
   }
-  
   node *file_data;
   size_t num_elements;
   r = fread(&num_elements, sizeof(size_t), 1, f);
@@ -208,15 +207,15 @@ int put(const keyType* key, const valType* val, lsm* tree){
     file_existed = false;
       // this is the first time writing to disk 
       // if the file exists, init first byte to be 0
-      FILE* f  = fopen(tree->disk1, "w");
-      if(fseek(f, 0, SEEK_SET)){
+      FILE* fw  = fopen(tree->disk1, "w");
+      if(fseek(fw, 0, SEEK_SET)){
 	perror("put: fseek 1:  \n");
       }
       size_t num_elements = 0;
-      if(!fwrite(&num_elements, sizeof(num_elements), 1, f)){
+      if(!fwrite(&num_elements, sizeof(num_elements), 1, fw)){
 	perror("put: fwrite 1:  \n");
       }
-      if(fclose(f)){
+      if(fclose(fw)){
 	perror("put fclose 1: \n");
       }
   }
@@ -225,22 +224,22 @@ int put(const keyType* key, const valType* val, lsm* tree){
     if(tree->sorted){
       merge_sort(tree->block, tree->next_empty);
     }
-    FILE* f  = fopen(tree->disk1, "w");  
+    FILE* fw  = fopen(tree->disk1, "w");  
     size_t num_elements = tree->next_empty-1;
-    if(fseek(f, 0, SEEK_SET)){
+    if(fseek(fw, 0, SEEK_SET)){
       perror("put: fseek 2: \n");
     }
     printf("INFO: Writing %zu elements on file\n",num_elements);
-    if(!fwrite(&num_elements, sizeof(num_elements), 1, f)){
+    if(!fwrite(&num_elements, sizeof(num_elements), 1, fw)){
       perror("put: frwite 2: \n");
     }
-    if(fseek(f, sizeof(num_elements), SEEK_SET)){
+    if(fseek(fw, sizeof(num_elements), SEEK_SET)){
       perror("put: fseek 3: \n");
     }
-    if(!fwrite(&tree->block, sizeof(node),(num_elements+tree->next_empty), f)){
+    if(!fwrite(&tree->block, sizeof(node),(num_elements+tree->next_empty), fw)){
       perror("put: fwrite 3: \n");
     }
-    if(fclose(f)){
+    if(fclose(fw)){
       perror("put: close \n");
     }
 
@@ -255,36 +254,52 @@ int put(const keyType* key, const valType* val, lsm* tree){
     // Assumption: the data from disk fits in memory
     node *file_data;
     size_t num_elements = 0;
-    FILE* f  = fopen(tree->disk1, "w");
-    if(!fread(&num_elements, sizeof(size_t), 1, f)){
-      perror("put: fread 1: \n");
-    }
+    FILE* fr  = fopen(tree->disk1, "r");
+    r = fread(&num_elements, sizeof(size_t), 1, fr);
+    if(r == 0){ 
+      if(ferror(fr)){
+	  perror("put: fread 1: ferror\n");
+	}
+	else if(feof(fr)){
+	  perror("put: fread 1: EOF found\n");
+	}
+      }
     file_data = malloc(sizeof(node)*num_elements);
     assert(file_data);
-    if(!fread(file_data, sizeof(node), num_elements, f)){
-      perror("put: fread 2: \n");
+    r = fread(file_data, sizeof(node), num_elements, fr);
+    if(r == 0){ 
+	if(ferror(fr)){
+	  perror("put fread 2: ferror\n");
+	}
+	else if(feof(fr)){
+	  perror("put fread 2: EOF found\n");
+	}
+      }
+    if(fclose(fr)){
+      perror("put: close 2: \n");
     }
     // merge the sorted buffer and the sorted disk contents
     node *complete_data = malloc(sizeof(node)*(num_elements+tree->next_empty));
     merge(complete_data, file_data, num_elements, tree->block,tree->next_empty);
+    FILE* fw  = fopen(tree->disk1, "w");
     // seek to the start of the file & write # of elements
-    if(fseek(f, 0, SEEK_SET)){
+    if(fseek(fw, 0, SEEK_SET)){
       perror("put: fseek 4: \n");
     }
-    if(!fwrite(&num_elements, sizeof(num_elements),1, f)){
+    if(!fwrite(&num_elements, sizeof(num_elements),1, fw)){
       perror("put: fwrite 4: \n");
     }
     // seek to the first space after the number of elements
-    if(fseek(f, sizeof(num_elements), SEEK_SET)){
+    if(fseek(fw, sizeof(num_elements), SEEK_SET)){
       perror("put: fseek 5: \n");
     }
-    if(!fwrite(complete_data,  sizeof(node),(num_elements+tree->next_empty), f)){
+    if(!fwrite(complete_data,  sizeof(node),(num_elements+tree->next_empty), fw)){
       perror("put: fwrite 5: \n");
     }
     // reset next_empty to 0
     // Question: Do I still want to do this if I'm writing a partial buffer?
     tree->next_empty = 0;
-    if(fclose(f)){
+    if(fclose(fw)){
       perror("put: close 2: \n");
     }
     free(file_data);
@@ -316,19 +331,49 @@ int update(const keyType* key, const valType* val, lsm* tree){
       node *file_data;
       size_t num_elements = 0;
       int r;
-      r = fread(&num_elements, sizeof(size_t), 1, tree->disk_fp);
+      FILE* fr = fopen(tree->disk1, "r");
+      r = fread(&num_elements, sizeof(size_t), 1, fr);
+      if(r == 0){ 
+	if(ferror(fr)){
+	  perror("ferror\n");
+	}
+	else if(feof(fr)){
+	  perror("EOF found\n");
+	}
+      }
       file_data = malloc(sizeof(node)*num_elements);
       assert(file_data);
-      r = fread(file_data, sizeof(node), num_elements, tree->disk_fp);
+      r = fread(file_data, sizeof(node), num_elements, fr);
+      if(r == 0){ 
+	if(ferror(fr)){
+	  perror("ferror\n");
+	}
+	else if(feof(fr)){
+	  perror("EOF found\n");
+	}
+      }
       file_data[i].key = *key;
       file_data[i].val = *val;
+      if(fclose(fr)){
+	perror("update: flcose 1: \n");
+      }
       // seek to the first space after the number of elements
-      fseek(tree->disk_fp, sizeof(node)*(i+1), SEEK_SET);
-      fwrite(file_data,  sizeof(node),num_elements, tree->disk_fp);
+      FILE* fw = fopen(tree->disk1, "w");
+      if(fw == NULL){
+	perror("update: fopen 2: \n");
+      }
+      if(fseek(fw, sizeof(node)*(i+1), SEEK_SET)){
+	perror("update: fseek \n");
+      }
+      if(!fwrite(file_data,  sizeof(node),num_elements, fw)){
+	perror("update: fwrite: \n");
+      }
       // reset next_empty to 0
       // Question: Do I still want to do this if I'm writing a partial buffer?
       tree->next_empty = 0;
-      fclose(tree->disk_fp);
+      if(fclose(fw)){
+	perror("update: flcose 2: \n");
+      }
       free(file_data);
     }
   }
@@ -361,7 +406,7 @@ void print_disk_data(lsm* tree){
   }
   file_data = malloc(sizeof(node)*num_elements);
   if(file_data == NULL){
-    perror("put: unsuccessful allocation \n");
+    perror("print_disk_data: unsuccessful allocation \n");
   }
   r = fread(file_data, sizeof(node), num_elements, f);
   if(r == 0){ 
@@ -380,18 +425,17 @@ void print_disk_data(lsm* tree){
 
 void test_print_tree(lsm* tree){
   printf("starting print tree\n");
-  FILE* f = fopen(tree->disk1, "r");
-  size_t file_size = get_file_size(f); 
-  printf("file size: %zu \n");
-   if(file_size == 0 && tree->next_empty != 0){
+  int file_exists = file_exists(tree->disk1);
+  printf("file size: %d \n");
+   if(!file_exists && tree->next_empty != 0){
     printf("data fits in the buffer\n");
     print_buffer_data(tree);
   }
-  if(file_size > 0 && tree->next_empty == 0){
+  if(file_exists && tree->next_empty == 0){
     printf("data is only on disk\n");
     print_disk_data(tree);
   }
-  if(file_size > 0 && tree->next_empty != 0){
+  if(file_exists && tree->next_empty != 0){
     printf("data is in buffer & on disk\n");
     print_buffer_data(tree);
     print_disk_data(tree);
@@ -475,13 +519,13 @@ int test_throughput(lsm* tree){
 
 int main() {
   int r;
-  int data_size = 150;
+  int data_size = 175;
   clock_t start, end;
   lsm* tree;
   start = clock();
   tree = init_new_lsm();
   r = test_put(tree, data_size);
-  //test_print_tree(tree);
+  test_print_tree(tree);
   //r = test_get(tree);
   //r = test_update(tree);
   //r = test_throughput(tree);
