@@ -207,8 +207,9 @@ int write_to_disk(lsm* tree){
     merge_sort(tree->block, tree->next_empty);
   } 
   struct stat s; 
-  int file_doesnt_exist = stat(tree->disk1, &s); 
-  if(!file_doesnt_exist){
+  int file_exists = stat(tree->disk1, &s); 
+  if(file_exists == 0){
+    // the file alrady exists 
     FILE* fr  = fopen(tree->disk1, "r");
     // read number of elements 
     r = fread(&num_elements, sizeof(size_t), 1, fr);
@@ -244,13 +245,15 @@ int write_to_disk(lsm* tree){
   FILE* fw  = fopen(tree->disk1, "w");
   if(complete_data == NULL){
     complete_data = tree->block;
+  }
+  if(num_elements <= 0){
     num_elements = tree->next_empty;
   }
   // seek to the start of the file & write # of elements
   if(fseek(fw, 0, SEEK_SET)){
     perror("put: fseek 4: \n");
   }
-  if(!fwrite(&num_elements, sizeof(num_elements),1, fw)){
+  if(!fwrite(&num_elements, sizeof(size_t), 1, fw)){
     perror("put: fwrite 4: \n");
   }
   // seek to the first space after the number of elements
@@ -414,7 +417,7 @@ void test_print_tree(lsm* tree){
     print_disk_data(tree);
   }
   printf("tree printed \n");
- }
+}
 
 
 int test_get(lsm* tree){
@@ -488,7 +491,6 @@ int test_throughput(lsm* tree){
   printf("testedthroughtput\n");
   return 0; 
 }
-
 
 int main() {
   int r;
