@@ -36,7 +36,7 @@ void merge_sort(node *block, int n);
 
 nodei* search_disk(const keyType* key, lsm* tree);
 
-node* get(const keyType* key, lsm* tree);
+node* get(const keyType key, lsm* tree);
 
 int write_to_disk(lsm* tree);
 
