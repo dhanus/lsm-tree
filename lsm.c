@@ -13,6 +13,7 @@ int file_exist(char *fname){
   return ( access( fname, F_OK ) != -1 );
 }
 
+
 lsm* init_new_lsm(){
   lsm* tree;
   tree = malloc(sizeof(lsm));
@@ -148,37 +149,40 @@ nodei* search_disk(const keyType* key, lsm* tree){
       perror("EOF found\n");
     }
   }
-  for(int i = 0; i < sizeof(file_data); i++){
+  for(int i = 0; i < num_elements; i++){
     if (file_data[i].key == *key){
       nodei* nodei = malloc(sizeof(nodei));
-      nodei->node = &file_data[i];
+      nodei->node = malloc(sizeof(node));
+      nodei->node->key = file_data[i].key;
+      nodei->node->val = file_data[i].val;
       nodei->index = i;
       return nodei;
     }
   }
+  free(file_data);
   if(fclose(f)){
     perror("search_disk: fclose: ");
   }
   return NULL; 
 }
 
-node* get(const keyType* key, lsm* tree){
+node* get(const keyType key, lsm* tree){
   // search the buffer for this item
-  nodei* ni = search_buffer(key, tree);
+  nodei* ni = search_buffer(&key, tree);
   if(ni != NULL){
     return ni->node;
   } else{
     // search through the file on disk for this item
-    ni = search_disk(key, tree);
+    ni = search_disk(&key, tree);
   }
   // If it does not find the given key, it will return NULL
   return ni->node;
 }
 
 int write_to_disk(lsm* tree){
-  node *complete_data;
-  node *file_data;
-  size_t num_elements;
+  node *complete_data = NULL;
+  node *file_data = NULL;
+  size_t num_elements = 0;
   int r;
   //sort the buffer 
   if(tree->sorted){
@@ -238,7 +242,7 @@ int write_to_disk(lsm* tree){
   if(fseek(fw, sizeof(num_elements), SEEK_SET)){
     perror("put: fseek 5: \n");
   }
-  if(!fwrite(complete_data,  sizeof(node),(num_elements+tree->next_empty), fw)){
+  if(!fwrite(complete_data,  sizeof(node),num_elements, fw)){
     perror("put: fwrite 5: \n");
     }
   // reset next_empty to 0
@@ -247,7 +251,6 @@ int write_to_disk(lsm* tree){
   if(fclose(fw)){
     perror("put: close 2: \n");
   }
-  free(complete_data);
   return 0; 
 }
 
@@ -369,7 +372,7 @@ void print_disk_data(lsm* tree){
       perror("EOF found\n");
     }
   }
-  for(int i = 0; i < sizeof(file_data); i++){
+  for(int i = 0; i < num_elements; i++){
     printf("key %d \n",file_data[i].key);
     printf("value %d\n",file_data[i].val);
   }
@@ -401,11 +404,11 @@ void test_print_tree(lsm* tree){
 int test_get(lsm* tree){
   printf("start get test_data\n");
   srand(0);
-  for (int i = 0; i < 10; i++){
-    keyType test_k;
+  for (int i = 0; i < 15; i++){
+    keyType test_k=(keyType)i;
     node* n;
     printf("get node\n");
-    n =  get(&test_k, tree);
+    n =  get(test_k, tree);
     assert(n);
     printf("got node. about to assert.\n"); 
     printf("val is %d\n", n->val); 
@@ -414,7 +417,6 @@ int test_get(lsm* tree){
   printf("successfully tested get\n");
   return 0; 
 }
-
 
 int test_put(lsm* tree, int data_size){
   /* QUESTION: Is there a smart way to ensure that the keys and values are unique? */
@@ -466,7 +468,7 @@ int test_throughput(lsm* tree){
     k = (keyType)rand();
     get(&k, tree);
   }
-  printf("testedthroughtput\n");
+  printf("tested throughtput\n");
   return 0; 
 }
 
@@ -479,8 +481,8 @@ int main() {
   tree = init_new_lsm();
   r = test_put(tree, data_size);
   test_print_tree(tree);
-  //r = test_get(tree);
-  //r = test_update(tree);
+  r = test_get(tree);
+  r = test_update(tree);
   //r = test_throughput(tree);
   end = clock();
   printf("%ldms\n", end-start);
