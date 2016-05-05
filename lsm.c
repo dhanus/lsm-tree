@@ -7,29 +7,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/stat.h>
-
-typedef int keyType;
-typedef int valType;
-
-typedef struct _node{
-  keyType key;
-  valType val;
-} node;
-
-typedef struct _lsm{
-  size_t block_size; // This is the number of nodes each block can hold.
-  int k; // The LSM tree grows in dimension k.
-  int node_size;
-  size_t next_empty;
-  node *block;
-  char* disk1;
-  bool sorted;
-} lsm;
-
-typedef struct _nodei{
-  node *node;
-  int index;
-} nodei;
+#include "lsm.h"
 
 int file_exist(char *fname){
   return ( access( fname, F_OK ) != -1 );
