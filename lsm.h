@@ -34,6 +34,8 @@ void merge(node *whole, node *left, int left_size, node *rght, int right_size);
 
 void merge_sort(node *block, int n);
 
+nodei* search_buffer(const keyType* key, lsm* tree);
+
 nodei* search_disk(const keyType* key, lsm* tree);
 
 node* get(const keyType key, lsm* tree);
@@ -41,6 +43,8 @@ node* get(const keyType key, lsm* tree);
 int write_to_disk(lsm* tree);
 
 int put(const keyType* key, const valType* val, lsm* tree);
+
+int delete(const keyType* key, lsm* tree);
 
 int update(const keyType* key, const valType* val, lsm* tree);
 
