@@ -175,9 +175,12 @@ node* get(const keyType key, lsm* tree){
   } else{
     // search through the file on disk for this item
     ni = search_disk(&key, tree);
+    if(ni != NULL){
+      return ni->node;
+    }
   }
   // If it does not find the given key, it will return NULL
-  return ni->node;
+  return NULL;
 }
 
 int write_to_disk(lsm* tree){
@@ -419,7 +422,6 @@ void test_print_tree(lsm* tree){
 }
 
 int test_get(lsm* tree, int data_size){
-  srand(0);
   for (int i = 0; i < data_size; i++){
     keyType test_k=(keyType)i;
     printf("getting key: %d \n", test_k);
@@ -507,9 +509,9 @@ int main(){
   tree = init_new_lsm();
   r = test_put(tree, data_size);
   test_print_tree(tree);
-  r = test_delete(tree, data_size); 
-  test_print_tree(tree);
-  r = test_get(tree, data_size);
+  //r = test_delete(tree, data_size); 
+  //test_print_tree(tree);
+  //r = test_get(tree, data_size);
   r = test_update(tree, data_size);
 /*   r = test_throughput(tree, data_size);  */
   end = clock();
