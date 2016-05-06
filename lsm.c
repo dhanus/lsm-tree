@@ -464,8 +464,8 @@ int test_update(lsm* tree, int data_size){
   printf("testing update\n");
   keyType k;
   valType v;
-  k = (keyType)rand() % data_size;
-  v = (valType)rand() % data_size;
+  k = (keyType)(rand() % data_size-1);
+  v = (valType)(rand() % data_size-1);
   int r = update(&k, &v, tree);
   printf("tested update\n");
   return r;
@@ -510,7 +510,7 @@ int main(){
   r = test_delete(tree, data_size); 
   test_print_tree(tree);
   r = test_get(tree, data_size);
-/*   r = test_update(tree, data_size);  */
+  r = test_update(tree, data_size);
 /*   r = test_throughput(tree, data_size);  */
   end = clock();
   printf("%ldms\n", end-start);
