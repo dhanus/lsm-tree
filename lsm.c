@@ -277,18 +277,24 @@ int delete(const keyType* key, lsm* tree){
   nodei *ni = malloc(sizeof(nodei));
   // if the node is in the buffer
   ni = search_buffer(key, tree);
-  tree->next_empty -= 1; 
-  for(int i = ni->index; i < tree->next_empty; i++){
-    node *n  = malloc(sizeof(node));
-    n->key = tree->block[i+1].key;
-    n->val = tree->block[i+1].val;
-    tree->block[i] = *n;
+  if(ni != NULL){
+    tree->next_empty -= 1; 
+    for(int i = ni->index; i < tree->next_empty; i++){
+      node *n  = malloc(sizeof(node));
+      n->key = tree->block[i+1].key;
+      n->val = tree->block[i+1].val;
+      tree->block[i] = *n;
+    }
   }
   // if the node is on disk 
-  if(ni == NULL){
+  else {
     ni = search_disk(key, tree);
+    assert(ni);
     FILE* fr  = fopen(tree->disk1, "r");
-    int num_elements = 0;
+    if(fr == NULL){
+      perror("delete: open: \n");
+    }
+    size_t num_elements = 0;
     node* file_data;
     // read number of elements 
     r = fread(&num_elements, sizeof(size_t), 1, fr);
@@ -318,8 +324,8 @@ int delete(const keyType* key, lsm* tree){
     }
     num_elements -=1;
     for(int i = ni->index; i < num_elements; i++){
-      node *n  = malloc(sizeof(node));
-      n->key  = file_data[i+1].key;
+      node *n = malloc(sizeof(node));
+      n->key = file_data[i+1].key;
       n->val = file_data[i+1].val;
       file_data[i] = *n;
     }
@@ -502,7 +508,8 @@ int main(){
   tree = init_new_lsm();
   r = test_put(tree, data_size);
   test_print_tree(tree);
-  r = test_get(tree);
+  r = test_delete(tree, data_size);
+  // r = test_get(tree);
   // r = test_update(tree);
   //r = test_throughput(tree);
   end = clock();
