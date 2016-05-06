@@ -109,7 +109,7 @@ void merge_sort(node *block, int n){
 
 
 nodei* search_buffer(const keyType* key, lsm* tree){
-  for (int i = 0; i < tree->block_size; i++){
+  for (int i = 0; i < tree->next_empty; i++){
     if (tree->block[i].key == *key){
       nodei* nodei = malloc(sizeof(nodei));
       nodei->node = malloc(sizeof(node));
@@ -123,7 +123,6 @@ nodei* search_buffer(const keyType* key, lsm* tree){
 }
 
 nodei* search_disk(const keyType* key, lsm* tree){
-  printf("opening file\n");
   int r; 
   FILE* f = fopen("disk_storage.txt", "r");
   if(f == NULL){
@@ -224,6 +223,7 @@ int write_to_disk(lsm* tree){
     // merge the sorted buffer and the sorted disk contents
     complete_data = malloc(sizeof(node)*(num_elements+tree->next_empty));
     merge(complete_data, file_data, num_elements, tree->block,tree->next_empty);
+    num_elements += tree->block_size;
     free(file_data);
   }
   FILE* fw  = fopen(tree->disk1, "w");
@@ -241,14 +241,13 @@ int write_to_disk(lsm* tree){
     perror("put: fwrite 4: \n");
   }
   // seek to the first space after the number of elements
-  if(fseek(fw, sizeof(num_elements), SEEK_SET)){
+  if(fseek(fw, sizeof(size_t), SEEK_SET)){
     perror("put: fseek 5: \n");
   }
-  if(!fwrite(complete_data,  sizeof(node),num_elements, fw)){
+  if(!fwrite(complete_data,  sizeof(node), num_elements, fw)){
     perror("put: fwrite 5: \n");
     }
   // reset next_empty to 0
-  // Question: Do I still want to do this if I'm writing a partial buffer?
   tree->next_empty = 0;
   if(fclose(fw)){
     perror("put: close 2: \n");
@@ -278,16 +277,10 @@ int delete(const keyType* key, lsm* tree){
   // if the node is in the buffer
   ni = search_buffer(key, tree);
   if(ni != NULL){
-    tree->next_empty -= 1; 
-    for(int i = ni->index; i < tree->next_empty; i++){
-      node *n  = malloc(sizeof(node));
-      n->key = tree->block[i+1].key;
-      n->val = tree->block[i+1].val;
-      tree->block[i] = *n;
-    }
-  }
-  // if the node is on disk 
-  else {
+    tree->next_empty -= 1;
+    memmove(&tree->block[ni->index], &tree->block[ni->index+1], tree->block_size-ni->index);
+  } else {
+    // if the node is on disk 
     ni = search_disk(key, tree);
     assert(ni);
     FILE* fr  = fopen(tree->disk1, "r");
@@ -322,12 +315,21 @@ int delete(const keyType* key, lsm* tree){
     if(fclose(fr)){
       perror("put: close 2: \n");
     }
-    num_elements -=1;
-    for(int i = ni->index; i < num_elements; i++){
-      node *n = malloc(sizeof(node));
-      n->key = file_data[i+1].key;
-      n->val = file_data[i+1].val;
-      file_data[i] = *n;
+    num_elements = num_elements - 1; 
+    memmove(&file_data[ni->index], &file_data[ni->index+1], num_elements-ni->index);
+    // write the new file data to disk 
+    FILE* fw  = fopen(tree->disk1, "w");
+    if(fseek(fw, 0, SEEK_SET)){
+      perror("delete seek:  \n");
+    }
+    if(!fwrite(&num_elements, sizeof(size_t), 1, fw)){
+      perror("delete fwrite: \n");
+    }
+    if(!fwrite(file_data,  sizeof(node), num_elements, fw)){
+      perror("delete fwrite: \n");
+    }
+    if(fclose(fw)){
+      perror("put: close 2: \n");
     }
   }
   return 0;
@@ -416,20 +418,17 @@ void test_print_tree(lsm* tree){
   printf("tree printed \n");
 }
 
-int test_get(lsm* tree){
-  printf("start get test_data\n");
+int test_get(lsm* tree, int data_size){
   srand(0);
-  for (int i = 0; i < 15; i++){
+  for (int i = 0; i < data_size; i++){
     keyType test_k=(keyType)i;
+    printf("getting key: %d \n", test_k);
     node* n;
-    printf("get node\n");
     n =  get(test_k, tree);
     assert(n);
-    printf("got node. about to assert.\n"); 
-    printf("val is %d\n", n->val); 
-    assert(n->val == (valType)test_k);
+    printf("got key: %d \n", n->key);
+    assert(n->key == (valType)test_k);
     }
-  printf("successfully tested get\n");
   return 0; 
 }
 
@@ -439,7 +438,7 @@ int test_put(lsm* tree, int data_size){
   srand(0);
   int r;
   printf("start: create_test_data\n");
-  for(int i = 0; i < data_size; i++){
+  for(int i = data_size; i >= 0; i--){
     keyType k;
     valType v;
     k = (keyType)i;
@@ -453,47 +452,47 @@ int test_put(lsm* tree, int data_size){
 
 int test_delete(lsm* tree, int data_size){
   int r = 0; 
-  printf("testing delete\n");
   keyType k;
-  valType v;
-  k = (keyType)rand() % data_size;
+  k = (keyType)((rand() % data_size)+10);
+  printf("deleting key: %d \n", k);
   r = delete(&k, tree);
-  printf("tested delete\n");
   return r; 
 }
 
 
-int test_update(lsm* tree){
+int test_update(lsm* tree, int data_size){
   printf("testing update\n");
   keyType k;
   valType v;
-  k = (keyType)rand();
-  v = (valType)rand();
+  k = (keyType)rand() % data_size;
+  v = (valType)rand() % data_size;
   int r = update(&k, &v, tree);
   printf("tested update\n");
   return r;
 }
 
-int test_throughput(lsm* tree){
+int test_throughput(lsm* tree, int data_size){
   printf("testing throughtput\n");
   srand(0); 
-  int rand_val = rand() % 99;
-  if(rand_val <= 33){
-    keyType k;
-    valType v;
-    k = (keyType)rand();
-    v = (valType)rand();
-    put(&k,&v, tree);
-  }else if(rand_val > 33 && rand_val <= 66){
-    keyType k;
-    valType v;
-    k = (keyType)rand();
+  for(int i = 2; i < data_size+2; i++){
+    float rand_val = rand() % 99;
+    if(rand_val <= 33.0){
+      keyType k;
+      valType v;
+      k = (keyType)i;
+      v = (valType)rand();
+      put(&k,&v, tree);
+    }else if(rand_val > 33.0 && rand_val <= 66.0){
+      keyType k;
+      valType v;
+    k = (keyType)rand() %(i-1);
     v = (valType)rand();
     update(&k, &v, tree);
-  } else {
-    keyType k;
-    k = (keyType)rand();
-    get(k, tree);
+    } else {
+      keyType k;
+      k = (keyType)rand() % (i-1);
+      get(k, tree);
+    }
   }
   printf("tested throughtput\n");
   return 0; 
@@ -501,17 +500,18 @@ int test_throughput(lsm* tree){
 
 int main(){
   int r;
-  int data_size = 15;
+  int data_size = 25;
   clock_t start, end;
   lsm* tree;
   start = clock();
   tree = init_new_lsm();
   r = test_put(tree, data_size);
   test_print_tree(tree);
-  r = test_delete(tree, data_size);
-  // r = test_get(tree);
-  // r = test_update(tree);
-  //r = test_throughput(tree);
+  r = test_delete(tree, data_size); 
+  test_print_tree(tree);
+  r = test_get(tree, data_size);
+/*   r = test_update(tree, data_size);  */
+/*   r = test_throughput(tree, data_size);  */
   end = clock();
   printf("%ldms\n", end-start);
   return r;
