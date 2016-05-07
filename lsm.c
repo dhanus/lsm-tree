@@ -9,7 +9,7 @@
 #include <sys/stat.h>
 #include "lsm.h"
 
-void check_file_ret(int r){
+void check_file_ret(FILE* f, int r){
   if(r == 0){ 
     if(ferror(f)){
       perror("ferror\n");
@@ -46,7 +46,6 @@ lsm* init_new_lsm(){
 void destruct_lsm(lsm* tree){
   free(tree->block);
   free(tree);
-}
 }
 
 void merge(node *whole, node *left,int left_size,node *right,int right_size){
@@ -122,10 +121,10 @@ nodei* search_disk(const keyType* key, lsm* tree){
   node *file_data;
   size_t num_elements;
   r = fread(&num_elements, sizeof(size_t), 1, f);
-  check_file_ret();
+  check_file_ret(f, r);
   file_data = malloc(sizeof(node)*num_elements);
   r = fread(file_data, sizeof(node), num_elements, f);
-  check_file_ret();
+  check_file_ret(f, r);
   for(int i = 0; i < num_elements; i++){
     if (file_data[i].key == *key){
       nodei* nodei = malloc(sizeof(nodei));
@@ -175,13 +174,13 @@ int write_to_disk(lsm* tree){
     FILE* fr  = fopen(tree->disk1, "r");
     // read number of elements 
     r = fread(&num_elements, sizeof(size_t), 1, fr);
-    check_file_ret()
+    check_file_ret(fr, r);
     // allocate memory for nodes on disk
     file_data = malloc(sizeof(node)*num_elements);
     assert(file_data);
     // read nodes on disk into memory
     r = fread(file_data, sizeof(node), num_elements, fr);
-    check_file_ret();
+    check_file_ret(fr, r);
     if(fclose(fr)){
       perror("put: close 2: \n");
     }
@@ -256,7 +255,7 @@ int delete(const keyType* key, lsm* tree){
     node* file_data;
     // read number of elements 
     r = fread(&num_elements, sizeof(size_t), 1, fr);
-    check_file_ret();
+    check_file_ret(fr, r);
     // allocate memory for nodes on disk
     file_data = malloc(sizeof(node)*num_elements);
     assert(file_data);

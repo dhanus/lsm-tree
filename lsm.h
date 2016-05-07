@@ -22,6 +22,7 @@ typedef struct _nodei{
   int index;
 } nodei;
 
+void check_file_ret(FILE* f, int r);
 
 lsm* init_new_lsm();
 
