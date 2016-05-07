@@ -344,15 +344,19 @@ int update(const keyType* key, const valType* val, lsm* tree){
   int r; 
   printf("updating things\n");
   nodei* ni = search_buffer(key, tree);
+  //printf("index is: ni %d \n", ni->index);
+  //printf("upating key: %d, val: %d \n", (ni->node->key, ni->node->val));
   if(ni != NULL){
     node n;
     n.key = *key;
     n.val = *val;
     tree->block[ni->index] = n;
+    //printf("to key: %d  val: %d \n", (*key, *val));
   } else {
     r = delete(key, tree);
     r = put(key, val, tree);
   }
+  
   printf("update finished\n");
   return 0;
 }
