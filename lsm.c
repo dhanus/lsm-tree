@@ -9,10 +9,16 @@
 #include <sys/stat.h>
 #include "lsm.h"
 
-int file_exist(char *fname){
-  return ( access( fname, F_OK ) != -1 );
+void check_file_ret(int r){
+  if(r == 0){ 
+    if(ferror(f)){
+      perror("ferror\n");
+    }
+    else if(feof(f)){
+      perror("EOF found\n");
+    }
+  }
 }
-
 
 lsm* init_new_lsm(){
   lsm* tree;
@@ -41,22 +47,6 @@ void destruct_lsm(lsm* tree){
   free(tree->block);
   free(tree);
 }
-
-
-size_t get_file_size(FILE *f){
-  errno=0;
-  if (fseek(f, 0, SEEK_END)<0) // seek to end of file
-  {
-	printf("Error: %d\n",errno);  
-    	perror("fseek \n");
-  } 
- size_t s = ftell(f); // get current file pointer
-  if (fseek(f, 0, SEEK_SET)<0) // seek to end of file
-  {
-	printf("Error: %d\n",errno);  
-    	perror("fseek \n");
-  } 
-  return s; 
 }
 
 void merge(node *whole, node *left,int left_size,node *right,int right_size){
@@ -132,24 +122,10 @@ nodei* search_disk(const keyType* key, lsm* tree){
   node *file_data;
   size_t num_elements;
   r = fread(&num_elements, sizeof(size_t), 1, f);
-  if(r == 0){ 
-    if(ferror(f)){
-      perror("ferror\n");
-    }
-    else if(feof(f)){
-      perror("EOF found\n");
-    }
-  }
+  check_file_ret();
   file_data = malloc(sizeof(node)*num_elements);
   r = fread(file_data, sizeof(node), num_elements, f);
-  if(r == 0){ 
-    if(ferror(f)){
-      perror("ferror\n");
-    }
-    else if(feof(f)){
-      perror("EOF found\n");
-    }
-  }
+  check_file_ret();
   for(int i = 0; i < num_elements; i++){
     if (file_data[i].key == *key){
       nodei* nodei = malloc(sizeof(nodei));
@@ -199,27 +175,13 @@ int write_to_disk(lsm* tree){
     FILE* fr  = fopen(tree->disk1, "r");
     // read number of elements 
     r = fread(&num_elements, sizeof(size_t), 1, fr);
-    if(r == 0){ 
-      if(ferror(fr)){
-	perror("put: fread 1: ferror\n");
-      }
-      else if(feof(fr)){
-	perror("put: fread 1: EOF found\n");
-      }
-    }
+    check_file_ret()
     // allocate memory for nodes on disk
     file_data = malloc(sizeof(node)*num_elements);
     assert(file_data);
     // read nodes on disk into memory
     r = fread(file_data, sizeof(node), num_elements, fr);
-    if(r == 0){ 
-      if(ferror(fr)){
-	perror("put fread 2: ferror\n");
-      }
-	else if(feof(fr)){
-	  perror("put fread 2: EOF found\n");
-	}
-    }
+    check_file_ret();
     if(fclose(fr)){
       perror("put: close 2: \n");
     }
@@ -294,14 +256,7 @@ int delete(const keyType* key, lsm* tree){
     node* file_data;
     // read number of elements 
     r = fread(&num_elements, sizeof(size_t), 1, fr);
-    if(r == 0){ 
-      if(ferror(fr)){
-	perror("put: fread 1: ferror\n");
-      }
-      else if(feof(fr)){
-	perror("put: fread 1: EOF found\n");
-      }
-    }
+    check_file_ret();
     // allocate memory for nodes on disk
     file_data = malloc(sizeof(node)*num_elements);
     assert(file_data);
@@ -479,7 +434,6 @@ int test_update(lsm* tree, int data_size){
 
 int test_throughput(lsm* tree, int data_size){
   printf("testing throughtput\n");
-  srand(0); 
   for(int i = 2; i < data_size+2; i++){
     float rand_val = rand() % 99;
     if(rand_val <= 33.0){

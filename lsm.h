@@ -22,13 +22,10 @@ typedef struct _nodei{
   int index;
 } nodei;
 
-int file_exist(char *fname);
 
 lsm* init_new_lsm();
 
 void destruct_lsm(lsm* tree); 
-
-size_t get_file_size(FILE *f);
 
 void merge(node *whole, node *left, int left_size, node *rght, int right_size);
 
