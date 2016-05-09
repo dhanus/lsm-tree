@@ -49,6 +49,3 @@ int update(const keyType* key, const valType* val, lsm* tree);
 void print_buffer_data(lsm* tree);
 
 void print_disk_data(lsm* tree); 
-
-void test_print_tree(lsm* tree);
-
