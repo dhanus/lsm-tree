@@ -20,14 +20,14 @@ void check_file_ret(FILE* f, int r){
   }
 }
 
-lsm* init_new_lsm(){
+lsm* init_new_lsm(size_t buffer_size){
   lsm* tree;
   tree = malloc(sizeof(lsm));
   if(!tree){
     perror("init_lsm: block is null \n");
     return NULL;
   }
-  tree->block_size = 10; 
+  tree->block_size = block_size;
   tree->k = 2; 
   tree->next_empty = 0; 
   tree->node_size = sizeof(node);
