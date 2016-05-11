@@ -24,7 +24,7 @@ typedef struct _nodei{
 
 void check_file_ret(FILE* f, int r);
 
-lsm* init_new_lsm(size_t block_size);
+lsm* init_new_lsm(size_t block_size, bool sorted);
 
 void destruct_lsm(lsm* tree); 
 
