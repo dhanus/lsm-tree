@@ -20,14 +20,14 @@ void check_file_ret(FILE* f, int r){
   }
 }
 
-lsm* init_new_lsm(size_t buffer_size){
+lsm* init_new_lsm(size_t buffer_size, bool sorted){
   lsm* tree;
   tree = malloc(sizeof(lsm));
   if(!tree){
     perror("init_lsm: block is null \n");
     return NULL;
   }
-  tree->block_size = block_size;
+  tree->block_size = buffer_size;
   tree->k = 2; 
   tree->next_empty = 0; 
   tree->node_size = sizeof(node);
@@ -37,8 +37,7 @@ lsm* init_new_lsm(size_t buffer_size){
     return NULL;
   }
   tree->disk1 = "disk_storage.txt";
-  tree->sorted = true;
-  printf("init_lsm: initialized lsm \n");
+  tree->sorted = sorted;
   return tree;
 }
 
@@ -296,7 +295,6 @@ int delete(const keyType* key, lsm* tree){
 int update(const keyType* key, const valType* val, lsm* tree){
   /* search buffer, search disk, update value  */
   int r; 
-  printf("updating things\n");
   nodei* ni = search_buffer(key, tree);
   //printf("index is: ni %d \n", ni->index);
   //printf("upating key: %d, val: %d \n", (ni->node->key, ni->node->val));
@@ -311,7 +309,6 @@ int update(const keyType* key, const valType* val, lsm* tree){
     r = put(key, val, tree);
   }
   
-  printf("update finished\n");
   return 0;
 }
 

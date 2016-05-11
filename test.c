@@ -33,7 +33,7 @@ void test_print_tree(lsm* tree){
   printf("tree printed \n");
 }
 
-int test_get(lsm* tree, int data_size){
+int test_get(lsm* tree, int data_size, bool sorted){
   for (int i = 0; i < data_size; i++){
     keyType test_k=(keyType)i;
     printf("getting key: %d \n", test_k);
@@ -46,21 +46,39 @@ int test_get(lsm* tree, int data_size){
   return 0; 
 }
 
-int test_put(lsm* tree, int data_size){
-  /* QUESTION: Is there a smart way to ensure that the keys and values are unique? */
-  assert(tree);
+int test_put(int* data_sizes, int num_data_sizes, int*buffer_sizes, bool sorted){
   srand(0);
+  int *max_buffer_size = malloc(sizeof(int));
   int r;
-  printf("start: create_test_data\n");
-  for(int i = data_size; i >= 0; i--){
-    keyType k;
-    valType v;
-    k = (keyType)i;
-    v = (valType)i;
-    r = put(&k,&v,tree);
-    assert(r==0);
+  lsm *tree;
+  clock_t start, end;
+  // for loop on data sizes 
+  for(int d = 0; d < num_data_sizes; d++){
+    // for loop on buffer
+    int max_buffer_size = data_sizes[d];
+    for(int b = 0; buffer_sizes[b] < max_buffer_size; b++){
+	tree = init_new_lsm(buffer_sizes[b], sorted);
+	start = clock();
+	for(int i = data_sizes[d]; i >= 0; i--){
+	  keyType k;
+	  valType v;
+	  k = (keyType)i;
+	  v = (valType)rand();
+	  r = put(&k,&v,tree);
+	  assert(r==0);
+	}
+	end = clock();
+	printf("data size: %d, buffer size %d \n", data_sizes[d],buffer_sizes[b]);
+	int time_elapsed = (int)end-start;
+	printf("%lu \n", time_elapsed);
+	char buf[0x100];
+	snprintf(buf , sizeof(buf), "put_%d.txt", data_sizes[d]);   
+	FILE *f = fopen(buf, "w");
+	fwrite(&time_elapsed, sizeof(int), 1, f);
+	fclose(f);
+    }
+    destruct_lsm(tree); 
   }
-  printf("test data created \n");
   return r;
 }
 
@@ -98,7 +116,7 @@ int test_throughput(lsm* tree, int data_size){
     }else if(rand_val > 33.0 && rand_val <= 66.0){
       keyType k;
       valType v;
-    k = (keyType)rand() %(i-1);
+    k = (keyType)rand() % (i-1);
     v = (valType)rand();
     update(&k, &v, tree);
     } else {
@@ -112,20 +130,14 @@ int test_throughput(lsm* tree, int data_size){
 }
 
 int main(){
-  int r;
-  int data_size = 25;
   clock_t start, end;
-  lsm* tree;
-  start = clock();
-  tree = init_new_lsm();
-  r = test_put(tree, data_size);
-  test_print_tree(tree);
-  //r = test_delete(tree, data_size); 
-  //test_print_tree(tree);
-  //r = test_get(tree, data_size);
-  r = test_update(tree, data_size);
-  /*   r = test_throughput(tree, data_size);  */
-  end = clock();
-  printf("%ldms\n", end-start);
+  printf("testing put\n");
+  int r;
+  int nsizes = 4;
+  int data_sizes[] = {1000, 10000, 100000, 100000};
+  int buffer_sizes[] = {100, 1000, 10000};
+  ///// TEST PUT - SORTED /////
+  bool sorted = true;
+  test_put(data_sizes, nsizes,  buffer_sizes, sorted); 
   return r;
 }
