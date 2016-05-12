@@ -353,13 +353,3 @@ void print_disk_data(lsm* tree){
     printf("value %d\n",file_data[i].val);
   }
 }
-
-// TODO: things to test
-// update to read ratios
-// start uniformly distributed then try adding skey
-// read-write ratio to throughput
-// number of duplicates
-// have read only / write only benchmarks
-
-// write a single function per test
-/* on exit, write partial buffer to disk on file and meta data */
