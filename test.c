@@ -33,6 +33,36 @@ void test_print_tree(lsm* tree){
   printf("tree printed \n");
 }
 
+int test_get_one(lsm* tree, int data_size){
+  for (int i = 0; i < data_size; i++){
+    keyType test_k=(keyType)i;
+    printf("getting key: %d \n", test_k);
+    node* n;
+    n =  get(test_k, tree);
+    assert(n);
+    printf("got key: %d \n", n->key);
+    assert(n->key == (valType)test_k);
+  }
+  return 0; 
+}
+
+int test_put_one(lsm* tree, int data_size){
+  assert(tree);
+  srand(0);
+  int r;
+  printf("start: create_test_data\n");
+  for(int i = data_size; i >= 0; i--){
+    keyType k;
+    valType v;
+    k = (keyType)i;
+    v = (valType)i;
+    r = put(&k,&v,tree);
+    assert(r==0);
+  }
+  printf("test data created \n");
+  return r;
+}
+
 int test_get(int* data_sizes, int num_data_sizes,  int* buffer_sizes, bool sorted){
   printf("test get\n");
   srand(0);
