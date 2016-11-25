@@ -33,117 +33,45 @@ void test_print_tree(lsm* tree){
   printf("tree printed \n");
 }
 
-int test_get_one(lsm* tree, int data_size){
-  for (int i = 0; i < data_size; i++){
-    keyType test_k=(keyType)i;
-    printf("getting key: %d \n", test_k);
-    node* n;
-    n =  get(test_k, tree);
-    assert(n);
-    printf("got key: %d \n", n->key);
-    assert(n->key == (valType)test_k);
-  }
-  return 0; 
-}
 
-int test_put_one(lsm* tree, int data_size){
-  assert(tree);
+int test_put(int data_size, int buffer_size, bool sorted){
   srand(0);
   int r;
-  printf("start: create_test_data\n");
-  for(int i = data_size; i >= 0; i--){
+  clock_t start, end;
+  lsm *tree;
+  tree = init_new_lsm(buffer_size, sorted);
+  start = clock();
+  for(int i = 0; i < data_size; i++){
     keyType k;
     valType v;
     k = (keyType)i;
-    v = (valType)i;
+    v = (valType)rand();
     r = put(&k,&v,tree);
     assert(r==0);
   }
-  printf("test data created \n");
-  return r;
-}
-
-int test_get(int* data_sizes, int num_data_sizes,  int* buffer_sizes, bool sorted){
-  printf("test get\n");
-  srand(0);
-  int *max_buffer_size = malloc(sizeof(int));
-  int r;
-  lsm *tree;
-  clock_t start, end;
-  // for loop on data sizes 
-  for(int d = 0; d < num_data_sizes; d++){
-    // for loop on buffer
-    int max_buffer_size = data_sizes[d];
-    for(int b = 0; buffer_sizes[b] < max_buffer_size; b++){
-      lsm* tree;
-      tree = init_new_lsm(buffer_sizes[b], sorted);
-      start = clock();
-      for(int i = data_sizes[d]; i >= 0; i--){
-	keyType test_k=(keyType)i;
-	//printf("getting key: %d \n", test_k);
-	node* n;
-	n =  get(test_k, tree);
-	assert(n);
-	//printf("got key: %d \n", n->key);
-	assert(n->key == (valType)test_k);
-      }
-      end = clock();
-      printf("data size: %d, buffer size %d \n", data_sizes[d],buffer_sizes[b]);
-      int time_elapsed = (int)end-start;
-      printf("%lu \n", time_elapsed);
-  /*     char buf[0x100]; */
-/*       snprintf(buf , sizeof(buf), "put_%d.txt", data_sizes[d]);    */
-/*       FILE *f = fopen(buf, "w"); */
-/*       fwrite(&time_elapsed, sizeof(int), 1, f); */
-/*       fclose(f); */
-      destruct_lsm(tree); 
-    }  
-  }
-  return 0; 
-}
-
-int test_put(int* data_sizes, int num_data_sizes, int*buffer_sizes, bool sorted){
-  srand(0);
-  int *max_buffer_size = malloc(sizeof(int));
-  int r;
-  clock_t start, end;
-  // for loop on data sizes 
-  for(int d = 0; d < num_data_sizes; d++){
-    // for loop on buffer
-    int max_buffer_size = data_sizes[d];
-    for(int b = 0; buffer_sizes[b] < max_buffer_size; b++){
-      lsm *tree;
-      tree = init_new_lsm(buffer_sizes[b], sorted);
-      start = clock();
-      for(int i = 0; i < data_sizes[b]; i++){
-	keyType k;
-	valType v;
-	k = (keyType)i;
-	v = (valType)rand();
-	r = put(&k,&v,tree);
-	assert(r==0);
-      }
-      end = clock();
-      printf("data size: %d, buffer size %d \n", data_sizes[d],buffer_sizes[b]);
-      int time_elapsed = (int)end-start;
-      printf("%lu \n", time_elapsed);
-      char buf[0x100];
-      snprintf(buf , sizeof(buf), "put_%d.txt", data_sizes[d]);   
-      FILE *f = fopen(buf, "w");
-      fwrite(&time_elapsed, sizeof(int), 1, f);
-      fclose(f);
-      destruct_lsm(tree); 
-    }
-  }
+  end = clock();
+  printf("data size: %d, buffer size %d \n", data_size, buffer_size);
+  int time_elapsed = (int)end-start;
+  printf("%lu \n", time_elapsed);
+  destruct_lsm(tree); 
   return r;
 }
 
 int test_delete(lsm* tree, int data_size){
   int r = 0; 
   keyType k;
+
+  clock_t start, end;
+  start = clock();
+
   k = (keyType)((rand() % data_size)+10);
   printf("deleting key: %d \n", k);
   r = delete(&k, tree);
+
+  end = clock();
+  printf("data size: %d, buffer size %d \n", data_size, buffer_size);
+  int time_elapsed = (int)end-start;
+  printf("%lu \n", time_elapsed);
   return r; 
 }
 
@@ -152,15 +80,33 @@ int test_update(lsm* tree, int data_size){
   printf("testing update\n");
   keyType k;
   valType v;
+
+  clock_t start, end;
+  start = clock();
+
   k = (keyType)(rand() % data_size-1);
   v = (valType)(rand() % data_size-1);
   int r = update(&k, &v, tree);
+
+
+  end = clock();
+  printf("data size: %d, buffer size %d \n", data_size, buffer_size);
+  int time_elapsed = (int)end-start;
+  printf("%lu \n", time_elapsed);
+
   printf("tested update\n");
   return r;
 }
 
-int test_throughput(lsm* tree, int data_size){
+int test_throughput(int data_size, int buffer_size, bool sorted){
   printf("testing throughtput\n");
+
+  clock_t start, end;
+  start = clock();
+  
+  lsm *tree;
+  tree = init_new_lsm(buffer_size, sorted);
+
   for(int i = 2; i < data_size+2; i++){
     float rand_val = rand() % 99;
     if(rand_val <= 33.0){
@@ -181,25 +127,31 @@ int test_throughput(lsm* tree, int data_size){
       get(k, tree);
     }
   }
+
+  end = clock();
+  int time_elapsed = (int)end-start;
+  printf("%lu \n", time_elapsed);
+  destruct_lsm(tree);
   printf("tested throughtput\n");
   return 0; 
 }
 
-int main(){
+int main(int argc, char* args[]){
+
+  assert(argc == 3); 
   clock_t start, end;
-  printf("testing put\n");
+
   int r;
-  int nsizes = 3;
-  int data_sizes[] = {1000};//{1000, 10000, 100000};//, 100000};
-  int buffer_sizes[] = {100000};//{100, 1000, 10000};
+  int data_size =  atoi(args[1]);
+  int buffer_size =  atoi(args[2]);
   ///// TEST PUT - SORTED /////
   bool sorted = true;
-  r = test_put(data_sizes, nsizes,  buffer_sizes, sorted);
-  ///// TEST GET - SORTED /////
-  //r = test_get(data_sizes, nsizes,  buffer_sizes, sorted);
-  ///// TEST PUT - UNSORTED /////
-  //bool sorted = false;
-  //r = test_put(data_sizes, nsizes,  buffer_sizes, sorted); 
-  //r = test_get(data_sizes, nsizes,  buffer_sizes, sorted);
+  //r = test_put(data_size,buffer_size, sorted);
+  r = test_throughput(data_size, buffer_size, sorted); 
+
+  sorted = false; 
+  //r = test_put(data_size,buffer_size, sorted);
+  r = test_throughput(data_size, buffer_size, sorted); 
+
   return r;
 }

@@ -1,7 +1,5 @@
 all: compile
 
-run: compile 
-	./lsm
 
 compile:
 	gcc -ggdb -g -O0 lsm.c test.c -o lsm
