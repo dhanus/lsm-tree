@@ -34,12 +34,10 @@ void test_print_tree(lsm* tree){
 }
 
 
-int test_put(int data_size, int buffer_size, bool sorted){
+int test_put(lsm* tree, int data_size, int buffer_size, bool sorted){
   srand(0);
   int r;
   clock_t start, end;
-  lsm *tree;
-  tree = init_new_lsm(buffer_size, sorted);
   start = clock();
   for(int i = 0; i < data_size; i++){
     keyType k;
@@ -53,7 +51,6 @@ int test_put(int data_size, int buffer_size, bool sorted){
   printf("data size: %d, buffer size %d \n", data_size, buffer_size);
   int time_elapsed = (int)end-start;
   printf("%lu \n", time_elapsed);
-  destruct_lsm(tree); 
   return r;
 }
 
@@ -96,15 +93,12 @@ int test_update(lsm* tree, int data_size){
   return r;
 }
 
-int test_throughput(int data_size, int buffer_size, bool sorted){
+int test_throughput(lsm* tree, int data_size, int buffer_size, bool sorted){
   printf("testing throughtput\n");
 
   clock_t start, end;
   start = clock();
   
-  lsm *tree;
-  tree = init_new_lsm(buffer_size, sorted);
-
   for(int i = 2; i < data_size+2; i++){
     float rand_val = rand() % 99;
     if(rand_val <= 33.0){
@@ -116,9 +110,9 @@ int test_throughput(int data_size, int buffer_size, bool sorted){
     }else if(rand_val > 33.0 && rand_val <= 66.0){
       keyType k;
       valType v;
-    k = (keyType)rand() % (i-1);
-    v = (valType)rand();
-    update(&k, &v, tree);
+      k = (keyType)rand()  % (i-1);
+      v = (valType)rand();
+      update(&k, &v, tree);
     } else {
       keyType k;
       k = (keyType)rand() % (i-1);
@@ -129,7 +123,6 @@ int test_throughput(int data_size, int buffer_size, bool sorted){
   end = clock();
   int time_elapsed = (int)end-start;
   printf("%lu \n", time_elapsed);
-  destruct_lsm(tree);
   printf("tested throughtput\n");
   return 0; 
 }
@@ -142,14 +135,17 @@ int main(int argc, char* args[]){
   int r;
   int data_size =  atoi(args[1]);
   int buffer_size =  atoi(args[2]);
-  ///// TEST PUT - SORTED /////
   bool sorted = true;
-  //r = test_put(data_size,buffer_size, sorted);
-  r = test_throughput(data_size, buffer_size, sorted); 
+  lsm *tree;
+  tree = init_new_lsm(buffer_size, sorted);  
 
-  sorted = false; 
-  //r = test_put(data_size,buffer_size, sorted);
-  r = test_throughput(data_size, buffer_size, sorted); 
+  ///// TEST PUT - SORTED /////
+  r = test_put(tree, data_size,buffer_size, sorted);
+  r = test_throughput(tree, data_size, buffer_size, sorted); 
 
+/*   sorted = false;  */
+/*   //r = test_put(data_size,buffer_size, sorted); */
+/*   r = test_throughput(data_size, buffer_size, sorted);  */
+  destruct_lsm(tree); 
   return r;
 }

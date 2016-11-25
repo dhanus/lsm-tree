@@ -131,6 +131,9 @@ nodei* search_disk(const keyType* key, lsm* tree){
       nodei->node->key = file_data[i].key;
       nodei->node->val = file_data[i].val;
       nodei->index = i;
+      if(fclose(f)){
+	perror("search_disk: fclose: ");
+      }
       return nodei;
     }
   }
@@ -169,7 +172,7 @@ int write_to_disk(lsm* tree){
   struct stat s; 
   int file_exists = stat(tree->disk1, &s); 
   if(file_exists == 0){
-    // the file alrady exists 
+    // the file already exists 
     FILE* fr  = fopen(tree->disk1, "r");
     // read number of elements 
     r = fread(&num_elements, sizeof(size_t), 1, fr);

@@ -5,14 +5,10 @@ void print_disk_data(lsm* tree);
 
 void test_print_tree(lsm* tree);
 
-int test_get_one(lsm* tree, int data_size);
-
-int test_put_one(lsm* tree, int data_size);
-
-int test_put(int data_size, int buffer_size, bool sorted);
+int test_put(lsm* tree, int data_size, int buffer_size, bool sorted);
 
 int test_delete(lsm* tree, int data_size);
 
 int test_update(lsm* tree, int data_size);
 
-int test_throughput(int data_size, int buffer_size, bool sorted);
+int test_throughput(lsm* tree, int data_size, int buffer_size, bool sorted);
