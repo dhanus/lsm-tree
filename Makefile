@@ -2,6 +2,7 @@ all: compile
 
 
 compile:
+	touch disk_storage.txt
 	gcc -ggdb -g -O0 lsm.c test.c -o lsm
 
 clean: 

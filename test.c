@@ -69,7 +69,6 @@ int test_delete(lsm* tree, int data_size){
   r = delete(&k, tree);
 
   end = clock();
-  printf("data size: %d, buffer size %d \n", data_size, buffer_size);
   int time_elapsed = (int)end-start;
   printf("%lu \n", time_elapsed);
   return r; 
@@ -90,7 +89,6 @@ int test_update(lsm* tree, int data_size){
 
 
   end = clock();
-  printf("data size: %d, buffer size %d \n", data_size, buffer_size);
   int time_elapsed = (int)end-start;
   printf("%lu \n", time_elapsed);
 
