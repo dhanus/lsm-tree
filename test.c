@@ -50,7 +50,7 @@ int test_put(lsm* tree, int data_size, int buffer_size, bool sorted){
   end = clock();
   //printf("data size: %d, buffer size %d \n", data_size, buffer_size);
   double time_elapsed = (double)end-start/CLOCKS_PER_SEC;
-  printf("%lu,", time_elapsed);
+  printf("%f,", time_elapsed);
   return r;
 }
 
@@ -66,8 +66,8 @@ int test_delete(lsm* tree, int data_size){
   r = delete(&k, tree);
 
   end = clock();
-  int time_elapsed = (int)end-start;
-  printf("%lu,", time_elapsed);
+  double time_elapsed = (double)end-start/CLOCKS_PER_SEC;
+  printf("%f,", time_elapsed);
   return r; 
 }
 
@@ -86,8 +86,8 @@ int test_update(lsm* tree, int data_size){
 
 
   end = clock();
-  int time_elapsed = (int)end-start;
-  printf("%lu,", time_elapsed);
+  double time_elapsed = (double)end-start/CLOCKS_PER_SEC;
+  printf("%f,", time_elapsed);
 
   printf("tested update\n");
   return r;
@@ -121,8 +121,8 @@ int test_throughput(lsm* tree, int data_size, int buffer_size, bool sorted){
   }
 
   end = clock();
-  int time_elapsed = (int)end-start;
-  printf("%lu,", time_elapsed);
+  double time_elapsed = (double)end-start/CLOCKS_PER_SEC;
+  printf("%f,", time_elapsed);
   printf("tested throughtput\n");
   return 0; 
 }
