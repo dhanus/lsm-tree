@@ -1,4 +1,5 @@
 import numpy as np 
+import cPickle as pickle 
 
 actions = ['put'] 
 data_sizes = ['1000', '10000', '100000', '1000000', '10000000']
@@ -24,4 +25,5 @@ for a in actions:
                                  'mean':np.average(data), 'std':np.std(data), \
                                  'data': data} 
 
+pickle.dump(stats, open('stats.p','w')) 
 print stats 
