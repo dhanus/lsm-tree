@@ -48,7 +48,7 @@ int test_put(lsm* tree, int data_size, int buffer_size, bool sorted){
     assert(r==0);
   }
   end = clock();
-  printf("data size: %d, buffer size %d \n", data_size, buffer_size);
+  //printf("data size: %d, buffer size %d \n", data_size, buffer_size);
   int time_elapsed = (int)end-start;
   printf("%lu \n", time_elapsed);
   return r;
@@ -141,7 +141,7 @@ int main(int argc, char* args[]){
 
   ///// TEST PUT - SORTED /////
   r = test_put(tree, data_size,buffer_size, sorted);
-  r = test_throughput(tree, data_size, buffer_size, sorted); 
+  // r = test_throughput(tree, data_size, buffer_size, sorted); 
 
 /*   sorted = false;  */
 /*   //r = test_put(data_size,buffer_size, sorted); */
