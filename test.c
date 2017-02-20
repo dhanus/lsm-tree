@@ -49,7 +49,7 @@ int test_put(lsm* tree, int data_size, int buffer_size, bool sorted){
   }
   end = clock();
   //printf("data size: %d, buffer size %d \n", data_size, buffer_size);
-  int time_elapsed = (int)end-start;
+  double time_elapsed = (double)end-start/CLOCKS_PER_SEC;
   printf("%lu,", time_elapsed);
   return r;
 }
