@@ -21,9 +21,7 @@ for a in actions:
             for i in range(len(data)): 
                 data[i] = float(data[i])
 
-                stats[id] = {'max':max(data), 'min':min(data), \
-                                 'mean':np.average(data), 'std':np.std(data), \
-                                 'data': data} 
+                stats[id] = {'max':max(data), 'min':min(data), 'mean':np.average(data), 'std':np.std(data), 'data': data} 
 
 pickle.dump(stats, open('stats.p','w')) 
 print stats 
