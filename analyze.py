@@ -11,9 +11,8 @@ ds = data_sizes[0]
 bs = buffer_sizes[0]
 
 id = '%s_%s_%s'%(a, ds, bs)
-
 f = open('data/%s.txt'%(id), 'r')
-data = f.readline().split(',') [:-1] 
+data = f.readline().split(',')[:-1] 
 
 for i in range(len(data)): 
     data[i] = float(data[i])
