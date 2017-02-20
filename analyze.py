@@ -1,8 +1,8 @@
 import numpy as np 
 import cPickle as pickle 
 
-actions = ['put'] 
-data_sizes = ['1000', '10000', '100000', '1000000']
+actions = ['put_sorted'] 
+data_sizes = ['1000', '10000', '100000']
 buffer_sizes = ['100', '1000', '10000', '100000']  
 
 stats = {} 
