@@ -10,13 +10,18 @@ a = actions[0]
 ds = data_sizes[0]
 bs = buffer_sizes[0]
 
-id = '%s_%s_%s'%(a, ds, bs)
-f = open('data/%s.txt'%(id), 'r')
-data = f.readline().split(',')[:-1] 
+for a in actions: 
+    for ds in data_sizes: 
+        for bs in buffer_sizes: 
+            id = '%s_%s_%s'%(a, ds, bs)
+            f = open('data/%s.txt'%(id), 'r')
+            data = f.readline().split(',')[:-1] 
 
-for i in range(len(data)): 
-    data[i] = float(data[i])
+            for i in range(len(data)): 
+                data[i] = float(data[i])
 
-stats[id] = {'max':max(data), 'min':min(data), 'mean':np.average(data), 'std':np.std(data), 'data': data} 
+                stats[id] = {'max':max(data), 'min':min(data), \
+                                 'mean':np.average(data), 'std':np.std(data), \
+                                 'data': data} 
 
 print stats 
