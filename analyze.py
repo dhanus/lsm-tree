@@ -2,7 +2,7 @@
 import numpy as np 
 import cPickle as pickle 
 
-actions = ['put_sorted'] 
+actions = ['put_unsorted', 'put_sorted'] 
 data_sizes = ['1000', '10000', '100000']
 buffer_sizes = ['100', '1000', '10000', '100000']  
 
@@ -33,10 +33,11 @@ for a in range(len(actions)):
             means[d,b] = mean 
             stds[d,b] = std 
             stats[id] = {'mean': mean, 'std': std, 'data': data} 
+            print id, mean 
  
-pickle.dump(stats, open('stats.p','w')) 
-pickle.dump(means, open('means.p','w')) 
-pickle.dump(stds, open('stds.p','w')) 
+pickle.dump(stats, open('data/processed/%s_stats.p'%(a),'w')) 
+pickle.dump(means, open('data/processed/%s_means.p'%(a),'w')) 
+pickle.dump(stds, open('data/processed/%s_stds.p'%(a),'w')) 
 print stats.keys() 
 print means 
 print stds 
