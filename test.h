@@ -7,6 +7,8 @@ void test_print_tree(lsm* tree);
 
 int test_put(lsm* tree, int data_size, int buffer_size, bool sorted);
 
+int test_get(lsm* tree, int data_size);
+
 int test_delete(lsm* tree, int data_size);
 
 int test_update(lsm* tree, int data_size);
