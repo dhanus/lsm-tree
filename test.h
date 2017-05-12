@@ -13,4 +13,4 @@ int test_delete(lsm* tree, int data_size);
 
 int test_update(lsm* tree, int data_size);
 
-int test_throughput(lsm* tree, int data_size, int buffer_size, bool sorted);
+int test_throughput(lsm* tree, int data_size, int buffer_size, bool sorted, float put_prob, float update_prob);
