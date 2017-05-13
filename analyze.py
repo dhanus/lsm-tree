@@ -2,14 +2,14 @@
 import numpy as np 
 import cPickle as pickle 
 
-actions = ['put_unsorted', 'put_sorted'] 
+actions = ['put_unsorted', 'put_sorted', 'get_sorted', 'update_sorted', 'update_unsorted', 'get_unsorted', 'throughput_unsorted_303030', 'throughput_sorted_303030'] 
 data_sizes = ['1000', '10000', '100000']
 buffer_sizes = ['100', '1000', '10000', '100000']  
 
 stats = {} 
 ids = [] 
 
-a = actions[0]
+a = actions[-1]
 # ds = data_sizes[0]
 # bs = buffer_sizes[0]
 means = np.zeros([len(data_sizes), len(buffer_sizes)]) 
@@ -35,9 +35,9 @@ for a in range(len(actions)):
             stats[id] = {'mean': mean, 'std': std, 'data': data} 
             print id, mean 
  
-pickle.dump(stats, open('data/processed/%s_stats.p'%(a),'w')) 
-pickle.dump(means, open('data/processed/%s_means.p'%(a),'w')) 
-pickle.dump(stds, open('data/processed/%s_stds.p'%(a),'w')) 
+pickle.dump(stats, open('data/processed/%s_stats.p'%(actions[a]),'w')) 
+pickle.dump(means, open('data/processed/%s_means.p'%(actions[a]),'w')) 
+pickle.dump(stds, open('data/processed/%s_stds.p'%(actions[a]),'w')) 
 print stats.keys() 
 print means 
 print stds 
