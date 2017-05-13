@@ -54,34 +54,34 @@ int test_put(lsm* tree, int data_size, int buffer_size, bool sorted){
   return r;
 }
 
-int test_delete(lsm* tree, int data_size){
+int test_delete(lsm* tree, int data_size, int nops){
   int r = 0; 
-  keyType k;
-
   clock_t start, end;
   start = clock();
-
-  k = (keyType)((rand() % data_size)+10);
-  printf("deleting key: %d \n", k);
-  r = delete(&k, tree);
-
+  for(int i = 0; i < nops; i++){
+    keyType k;
+    k = (keyType)((rand() % data_size)+10);
+    printf("deleting key: %d \n", k);
+    r = delete(&k, tree);
+  }
   end = clock();
   double time_elapsed = (double)end-start/CLOCKS_PER_SEC;
   printf("%f,", time_elapsed);
+  
   return r; 
 }
 
 
-int test_get(lsm* tree, int data_size){
-  keyType k;
-  valType v;
+int test_get(lsm* tree, int data_size, int nops){
   int r = 0; 
   clock_t start, end;
   start = clock();
-
-  k = (keyType)(rand() % data_size-1);
-  node* n = get(k, tree);
-
+  for(int i = 0; i < nops; i++){
+    keyType k;
+    valType v;
+    k = (keyType)(rand() % data_size-1);
+    node* n = get(k, tree);
+  }
   end = clock();
   double time_elapsed = (double)end-start/CLOCKS_PER_SEC;
   printf("%f,", time_elapsed);
@@ -89,30 +89,29 @@ int test_get(lsm* tree, int data_size){
 };
 
 
-int test_update(lsm* tree, int data_size){
-  keyType k;
-  valType v;
-
+int test_update(lsm* tree, int data_size, int nops){
+  int r = 0; 
   clock_t start, end;
   start = clock();
-
-  k = (keyType)(rand() % data_size-1);
-  v = (valType)(rand() % data_size-1);
-  int r = update(&k, &v, tree);
-
+  for(int i = 0; i < nops; i++){
+    keyType k;
+    valType v;
+    k = (keyType)(rand() % data_size-1);
+    v = (valType)(rand() % data_size-1);
+    int r = update(&k, &v, tree);
+  }
   end = clock();
   double time_elapsed = (double)end-start/CLOCKS_PER_SEC;
   printf("%f,", time_elapsed);
   return r;
 }
 
-int test_throughput(lsm* tree, int data_size, int buffer_size, bool sorted, float put_prob, float update_prob){
-
+int test_throughput(lsm* tree, int data_size, int buffer_size, bool sorted, int nops, float put_prob, float update_prob){
+  int r = 0; 
+  int ndata = 0; 
   clock_t start, end;
   start = clock();
-  
-  int ndata = 0; 
-  for(int i = 2; i < data_size+2; i++){
+  for(int i = 0; i < nops; i++){ 
     float rand_val = rand() % 99;
     if(rand_val <= put_prob){
       keyType k;
@@ -133,7 +132,6 @@ int test_throughput(lsm* tree, int data_size, int buffer_size, bool sorted, floa
       get(k, tree);
     }
   }
-
   end = clock();
   double time_elapsed = (double)end-start/CLOCKS_PER_SEC;
   printf("%f,", time_elapsed);
@@ -142,27 +140,22 @@ int test_throughput(lsm* tree, int data_size, int buffer_size, bool sorted, floa
 
 int main(int argc, char* args[]){
 
-  assert(argc == 3); 
+  assert(argc == 4); 
   clock_t start, end;
 
   int r;
   int data_size =  atoi(args[1]);
   int buffer_size =  atoi(args[2]);
-  bool sorted = false;
+  int nops = atoi(args[3]);
+  bool sorted = true;
   lsm *tree;
   tree = init_new_lsm(buffer_size, sorted);  
   r = test_put(tree, data_size, buffer_size, sorted);
-  /* for(int i = 0; i < 50;i++){ */
-  /*       r = test_get(tree, data_size); */
-  /*     } */
-  /*   for(int i = 0; i < 50;i++){ */
-  /*     r = test_update(tree, data_size); */
-  /*   }   */
+  /*       r = test_get(tree, data_size, nops); */
+  /*     r = test_update(tree, data_size, nops); */
   float put_prob = 33.0;
   float update_prob = 33.0; 
-  for(int i = 0; i < 100;i++){
-    r = test_throughput(tree, data_size, buffer_size, sorted, put_prob, update_prob); 
-  }
+  r = test_throughput(tree, data_size, buffer_size, sorted, nops, put_prob, update_prob); 
   destruct_lsm(tree); 
   return r;
 }
