@@ -140,22 +140,26 @@ int test_throughput(lsm* tree, int data_size, int buffer_size, bool sorted, int 
 
 int main(int argc, char* args[]){
 
-  assert(argc == 4); 
+  assert(argc == 5); 
   clock_t start, end;
 
   int r;
   int data_size =  atoi(args[1]);
   int buffer_size =  atoi(args[2]);
   int nops = atoi(args[3]);
-  bool sorted = true;
+  bool sorted = false;
   lsm *tree;
+  /* TEST PUT */ 
   tree = init_new_lsm(buffer_size, sorted);  
   r = test_put(tree, data_size, buffer_size, sorted);
-  /*       r = test_get(tree, data_size, nops); */
-  /*     r = test_update(tree, data_size, nops); */
-  float put_prob = 33.0;
-  float update_prob = 33.0; 
-  r = test_throughput(tree, data_size, buffer_size, sorted, nops, put_prob, update_prob); 
+  /* TEST GET */ 
+  //  r = test_get(tree, data_size, nops);
+  /* TEST UPDATE */ 
+  r = test_update(tree, data_size, nops);
+  /* TEST THROUGHPUT */;
+  /*   float put_prob = 33.0; */
+  /*   float update_prob = 33.0;  */
+  /*   r = test_throughput(tree, data_size, buffer_size, sorted, nops, put_prob, update_prob);  */
   destruct_lsm(tree); 
   return r;
 }
