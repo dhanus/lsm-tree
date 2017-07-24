@@ -12,7 +12,7 @@
 
 
 void test_print_tree(lsm* tree){
-  printf("starting print tree\n");
+  ///Given a pointer to a lsm object, prints tree.
   struct stat s; 
   if(stat(tree->disk1, &s)){
     perror("print: fstat \n");
@@ -30,11 +30,16 @@ void test_print_tree(lsm* tree){
     print_buffer_data(tree);
     print_disk_data(tree);
   }
-  printf("tree printed \n");
 }
 
 
 int test_put(lsm* tree, int data_size, int buffer_size, bool sorted){
+  ///Puts `data size` items into the lsm tree object. 
+  ///Args:
+  ///  tree: pointer to lsm object. 
+  ///  data_size: int specifying how much data to add. 
+  ///  buffer_size: int specifying in-memory buffer size. 
+  ///  sorted: bool if true, data will be sorted on disk. 
   srand(0);
   int r;
   clock_t start, end;
@@ -55,6 +60,11 @@ int test_put(lsm* tree, int data_size, int buffer_size, bool sorted){
 }
 
 int test_delete(lsm* tree, int data_size, int nops){
+  ///Deletes a single item in range (0, `data_size`).
+  ///Args: 
+  ///  tree: pointer to lsm object. 
+  ///  data_size: int specifying size of data stored. 
+  ///  nops: specifies number of times to run op. 
   int r = 0; 
   clock_t start, end;
   start = clock();
@@ -73,6 +83,11 @@ int test_delete(lsm* tree, int data_size, int nops){
 
 
 int test_get(lsm* tree, int data_size, int nops){
+  ///Retrieves an item from the LSM in range (0, `data_size`).
+  ///Args: 
+  ///  tree: pointer to lsm object. 
+  ///  data_size: int specifying size of data stored. 
+  ///  nops: specifies number of times to run op.
   int r = 0; 
   clock_t start, end;
   start = clock();
@@ -90,6 +105,11 @@ int test_get(lsm* tree, int data_size, int nops){
 
 
 int test_update(lsm* tree, int data_size, int nops){
+  ///Tests the update function. 
+  ///Args: 
+  ///  tree: pointer to lsm object. 
+  ///  data_size: int specifying size of data stored. 
+  ///  nops: specifies number of times to run op.
   int r = 0; 
   clock_t start, end;
   start = clock();
@@ -107,6 +127,11 @@ int test_update(lsm* tree, int data_size, int nops){
 }
 
 int test_throughput(lsm* tree, int data_size, int buffer_size, bool sorted, int nops, float put_prob, float update_prob){
+  ///Tests LSM's throughput by trying many operations of different probabilities. 
+  ///Args: 
+  ///  tree: pointer to lsm object. 
+  ///  data_size: int specifying size of data stored. 
+  ///  nops: specifies number of times to run op.
   int r = 0; 
   int ndata = 0; 
   clock_t start, end;
@@ -144,11 +169,13 @@ int main(int argc, char* args[]){
   clock_t start, end;
 
   int r;
-  int data_size =  atoi(args[1]);
-  int buffer_size =  atoi(args[2]);
+  int data_size = atoi(args[1]);
+  int buffer_size = atoi(args[2]);
   int nops = atoi(args[3]);
   bool sorted = false;
   lsm *tree;
+
+
   /* TEST PUT */ 
   tree = init_new_lsm(buffer_size, sorted);  
   r = test_put(tree, data_size, buffer_size, sorted);
