@@ -5,7 +5,7 @@ This is an implementation of a two-level single-threaded [log structure merge (L
 lsm.c holds the implementation of the LSM tree. 
 test.c holds the test functions. 
 run.py and analyze.py are auxiliary files used to collect and process the data.  
-create_plots.upynb is an ipython notebook which takes in the arrays of data as .p files and plots it using [NumPy](http://www.numpy.org/) and [Matplotlib](https://matplotlib.org/).
+create_plots.ipynb is an ipython notebook which takes in the arrays of data as .p files and plots it using [NumPy](http://www.numpy.org/) and [Matplotlib](https://matplotlib.org/).
 
 ## To replicate data collection 
 Select the test that you want to run from the main function in test.c 
