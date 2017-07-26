@@ -33,7 +33,7 @@ void test_print_tree(lsm* tree){
 }
 
 
-int test_put(lsm* tree, int data_size, int buffer_size, bool sorted){
+int test_put(lsm* tree, int data_size, int buffer_size, bool sorted, bool timing){
   /* Puts `data size` items into the lsm tree object.
      Args:
      tree: pointer to lsm object.
@@ -53,13 +53,14 @@ int test_put(lsm* tree, int data_size, int buffer_size, bool sorted){
     assert(r==0);
   }
   end = clock();
-
-  double time_elapsed = (double)end-start/CLOCKS_PER_SEC;
-  printf("%f,", time_elapsed);
+  if(timing){
+    double time_elapsed = (double)end-start/CLOCKS_PER_SEC;
+    printf("%f,", time_elapsed);
+  }
   return r;
 }
 
-int test_delete(lsm* tree, int data_size, int nops){
+int test_delete(lsm* tree, int data_size, int nops, bool timing){
   /* Deletes a single item in range (0, `data_size`).
      Args:
      tree: pointer to lsm object.
@@ -75,14 +76,15 @@ int test_delete(lsm* tree, int data_size, int nops){
     r = delete(&k, tree);
   }
   end = clock();
-  double time_elapsed = (double)end-start/CLOCKS_PER_SEC;
-  printf("%f,", time_elapsed);
-  
+  if(timing){
+    double time_elapsed = (double)end-start/CLOCKS_PER_SEC;
+    printf("%f,", time_elapsed);
+  }
   return r; 
 }
 
 
-int test_get(lsm* tree, int data_size, int nops){
+int test_get(lsm* tree, int data_size, int nops, bool timing){
   /* Retrieves an item from the LSM in range (0, `data_size`).
      Args:
      tree: pointer to lsm object.
@@ -98,13 +100,15 @@ int test_get(lsm* tree, int data_size, int nops){
     node* n = get(k, tree);
   }
   end = clock();
-  double time_elapsed = (double)end-start/CLOCKS_PER_SEC;
-  printf("%f,", time_elapsed);
+  if(timing){
+    double time_elapsed = (double)end-start/CLOCKS_PER_SEC;
+    printf("%f,", time_elapsed);
+  }
   return r; 
 };
 
 
-int test_update(lsm* tree, int data_size, int nops){
+int test_update(lsm* tree, int data_size, int nops, bool timing){
   /* Tests the update function.
      Args:
      tree: pointer to lsm object.
@@ -121,12 +125,14 @@ int test_update(lsm* tree, int data_size, int nops){
     int r = update(&k, &v, tree);
   }
   end = clock();
-  double time_elapsed = (double)end-start/CLOCKS_PER_SEC;
-  printf("%f,", time_elapsed);
+  if(timing){
+    double time_elapsed = (double)end-start/CLOCKS_PER_SEC;
+    printf("%f,", time_elapsed);
+  }
   return r;
 }
 
-int test_throughput(lsm* tree, int data_size, int buffer_size, bool sorted, int nops, float put_prob, float update_prob){
+int test_throughput(lsm* tree, int data_size, int buffer_size, bool sorted, int nops, float put_prob, float update_prob, bool timing){
   /*Tests LSM's throughput by trying many operations of different probabilities. 
     Args: 
     tree: pointer to lsm object. 
@@ -158,8 +164,10 @@ int test_throughput(lsm* tree, int data_size, int buffer_size, bool sorted, int 
     }
   }
   end = clock();
-  double time_elapsed = (double)end-start/CLOCKS_PER_SEC;
-  printf("%f,", time_elapsed);
+  if(timing){
+    double time_elapsed = (double)end-start/CLOCKS_PER_SEC;
+    printf("%f,", time_elapsed);
+  }
   return 0; 
 }
 
@@ -178,27 +186,34 @@ int main(int argc, char* args[]){
   if(argc == 6){
     sorted = args[5];
   }
-
+  // set probabilities for throughput. 
+  float put_prob = 33.0; 
+  float update_prob = 33.0; 
+  if(argc == 8){
+    put_prob = atoi(args[6]);
+    update_prob = atoi(args[7]); 
+  }
   lsm *tree;
   tree = init_new_lsm(buffer_size, sorted);
   
   if(strcmp(testing, "put") == 0){
     /* TEST PUT */ 
-    r = test_put(tree, data_size, buffer_size, sorted);
+    r = test_put(tree, data_size, buffer_size, sorted, true);
   }
   if(strcmp(testing, "get") == 0){
     /* TEST GET */ 
-    r = test_get(tree, data_size, nops);
+    r = test_put(tree, data_size, buffer_size, sorted, false);
+    r = test_get(tree, data_size, nops, true);
   }
   if(strcmp(testing, "upd") == 0){
   /* TEST UPDATE */
-    r = test_update(tree, data_size, nops);
+    r = test_put(tree, data_size, buffer_size, sorted, false);
+    r = test_update(tree, data_size, nops, true);
   }
   if(strcmp(testing, "thr") == 0){
   /* TEST THROUGHPUT */;
-  float put_prob = 33.0; 
-  float update_prob = 33.0; 
-  r = test_throughput(tree, data_size, buffer_size, sorted, nops, put_prob, update_prob);
+  r = test_put(tree, data_size, buffer_size, sorted, false);
+  r = test_throughput(tree, data_size, buffer_size, sorted, nops, put_prob, update_prob, true);
   }
   destruct_lsm(tree); 
   return r;
